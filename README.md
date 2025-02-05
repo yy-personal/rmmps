@@ -7,7 +7,7 @@ A comprehensive system for managing recipes, planning meals, and generating shop
 
 | Category | Tool Options | Reference Link |
 |----------|--------------|----------------|
-| Project Management | Jira | https://ncs-6ever.atlassian.net/jira/software/projects/RMMPS/boards/|
+| Project Management | Jira | https://ncs-6ever.atlassian.net/jira/software/projects/RMMPS/boards/1 |
 | Version Control | GitHub | https://github.com/yy-personal/rmmps/ |
 | Communication | Microsoft Teams | - |
 | CI/CD | GitHub Actions, Jenkins, GitLab CI | https://github.com/features/actions |
