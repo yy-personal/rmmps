@@ -1,0 +1,75 @@
+name: CI Pipeline
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  lint_frontend:
+    name: Lint Frontend (React TypeScript)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: cd frontend && npm install
+
+      - name: Run ESLint
+        run: cd frontend && npx eslint . --ext .ts,.tsx
+
+  sast_scan:
+    name: Static Application Security Testing (SAST)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v2
+        with:
+          languages: javascript, java
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v2
+
+  test_backend:
+    name: Test Backend (Spring Boot JUnit)
+    runs-on: ubuntu-latest
+    needs: sast_scan
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '23'
+
+      - name: Build and Test Spring Boot App
+        run: cd backend && ./mvnw clean test
+
+  dast_scan:
+    name: Dynamic Application Security Testing (DAST)
+    runs-on: ubuntu-latest
+    needs: [test_backend]
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Start Backend Server
+        run: |
+          cd backend
+          ./mvnw spring-boot:run & sleep 15
+
+      - name: Run OWASP ZAP Scan
+        uses: zaproxy/action-full-scan@v0.4.0
+        with:
+          target: 'http://localhost:8080'
