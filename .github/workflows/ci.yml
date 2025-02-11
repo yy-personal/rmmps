@@ -26,12 +26,13 @@ jobs:
 
   load_env:
     name: Load Environment Variables
+    runs-on: ubuntu-latest
     steps:
       - name: Load .env file
-      run: |
-        export $(grep -v '^#' .env | xargs) 
-        echo "DB_USERNAME=${DB_USERNAME}" >> $GITHUB_ENV
-        echo "DB_PASSWORD=${DB_PASSWORD}" >> $GITHUB_ENV
+        run: |
+          export $(grep -v '^#' .env | xargs) 
+          echo "DB_USERNAME=${DB_USERNAME}" >> $GITHUB_ENV
+          echo "DB_PASSWORD=${DB_PASSWORD}" >> $GITHUB_ENV
 
   sast_scan:
     name: Static Application Security Testing (SAST)
