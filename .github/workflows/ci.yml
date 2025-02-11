@@ -25,14 +25,13 @@ jobs:
         run: cd frontend && npx eslint . --ext .ts,.tsx
 
   load_env:
-    name: Load Environment Variables
+    name: Load Environment Variables From Secrets
     runs-on: ubuntu-latest
     steps:
-      - name: Load .env file
+      - name: Set up environment variables
         run: |
-          export $(grep -v '^#' .env | xargs) 
-          echo "DB_USERNAME=${DB_USERNAME}" >> $GITHUB_ENV
-          echo "DB_PASSWORD=${DB_PASSWORD}" >> $GITHUB_ENV
+          echo "DB_USERNAME=${{ secrets.DB_USERNAME }}" >> $GITHUB_ENV
+          echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> $GITHUB_ENV
 
   sast_scan:
     name: Static Application Security Testing (SAST)
