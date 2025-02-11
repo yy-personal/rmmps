@@ -1,14 +1,23 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
 import "./index.css";
 import App from "./App";
+import RecipeList from "components/RecipeList/RecipeList";
 
 const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement
 );
 root.render(
   <React.StrictMode>
-    <App />
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<App />}>
+          <Route path="/" element={<RecipeList />} />
+          {/* <Route path="*" element={<PageNotFound />} /> */}
+        </Route>
+      </Routes>
+    </BrowserRouter>
   </React.StrictMode>
 );
 
