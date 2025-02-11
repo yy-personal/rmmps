@@ -51,10 +51,10 @@ jobs:
         uses: actions/setup-java@v3
         with:
           distribution: 'temurin'
-          java-version: '23'
+          java-version: '17'
 
       - name: Build and Test Spring Boot App
-        run: cd backend && ./mvnw clean test
+        run: cd backend && ./mvnw clean verify
 
   dast_scan:
     name: Dynamic Application Security Testing (DAST)
