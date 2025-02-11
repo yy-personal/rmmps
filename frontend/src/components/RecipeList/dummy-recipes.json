@@ -1,0 +1,22 @@
+{
+  "recipes": [
+    {
+      "id": 1,
+      "title": "Mac & Cheese",
+      "creatorName": "Min Mao",
+      "creatorId": 1,
+      "tags": ["Halal", "Vegetarian"],
+      "ingredients": "lalala",
+      "instructions": [
+        {
+          "text": "lala",
+          "image": ""
+        },
+        {
+          "text": "lala",
+          "image": ""
+        }
+      ]
+    }
+  ]
+}
