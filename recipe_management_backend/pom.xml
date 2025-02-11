@@ -11,7 +11,7 @@
 	</parent>
 
 	<groupId>com.nus_iss</groupId>
-	<artifactId>recipe_management</artifactId>
+	<artifactId>recipe_management_backend</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>Recipe Management</name>
 	<description>Recipe Management and Meal Planning System</description>
@@ -37,18 +37,18 @@
 			<artifactId>spring-boot-starter-security</artifactId>
 		</dependency>
 
-		<!-- MySQL Driver -->
-		<dependency>
-			<groupId>mysql</groupId>
-			<artifactId>mysql-connector-java</artifactId>
-			<scope>runtime</scope>
-		</dependency>
+<!--		&lt;!&ndash; MySQL Driver &ndash;&gt;-->
+<!--		<dependency>-->
+<!--			<groupId>mysql</groupId>-->
+<!--			<artifactId>mysql-connector-java</artifactId>-->
+<!--			<scope>runtime</scope>-->
+<!--		</dependency>-->
 
-		<!-- Hibernate (Optional, included in JPA Starter) -->
-		<dependency>
-			<groupId>org.hibernate</groupId>
-			<artifactId>hibernate-core</artifactId>
-		</dependency>
+<!--		&lt;!&ndash; Hibernate (Optional, included in JPA Starter) &ndash;&gt;-->
+<!--		<dependency>-->
+<!--			<groupId>org.hibernate</groupId>-->
+<!--			<artifactId>hibernate-core</artifactId>-->
+<!--		</dependency>-->
 
 		<!-- Jackson for JSON Processing -->
 		<dependency>
