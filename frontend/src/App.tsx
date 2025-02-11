@@ -1,7 +1,6 @@
 import "./App.css";
 import Box from "@mui/material/Box";
 import Header from "components/Header/Header";
-import RecipeList from "components/RecipeList/RecipeList";
 import { Outlet } from "react-router-dom";
 
 function App() {
