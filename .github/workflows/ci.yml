@@ -24,6 +24,15 @@ jobs:
       - name: Run ESLint
         run: cd frontend && npx eslint . --ext .ts,.tsx
 
+  load_env:
+    name: Load Environment Variables
+    steps:
+      - name: Load .env file
+      run: |
+        export $(grep -v '^#' .env | xargs) 
+        echo "DB_USERNAME=${DB_USERNAME}" >> $GITHUB_ENV
+        echo "DB_PASSWORD=${DB_PASSWORD}" >> $GITHUB_ENV
+
   sast_scan:
     name: Static Application Security Testing (SAST)
     runs-on: ubuntu-latest
@@ -82,7 +91,7 @@ jobs:
 
       - name: Grant execute permissions to Maven Wrapper
         run: chmod +x recipe_management_backend/mvnw
-        
+
       - name: Start Backend Server
         run: |
           cd recipe_management_backend
