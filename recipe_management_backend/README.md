@@ -31,12 +31,10 @@ This is a Spring Boot backend for managing recipes, users, ingredients, and cate
    git clone https://github.com/yy-personal/rmmps.git
    cd recipe-management
    ```
-2. Configure the database in `application.properties`:
-   ```properties
-   spring.datasource.url=jdbc:mysql://mysql-rmmps-recipe-management-and-meal-planning-system.f.aivencloud.com:27809/RecipeManagement
-   spring.datasource.username=your_username
-   spring.datasource.password=your_password
-   spring.jpa.hibernate.ddl-auto=update
+2. Configure the database in `.env`:
+   ```environment variables
+   DB_USERNAME=myuser
+   DB_PASSWORD=mypassword
    ```
 3. Build the project:
    ```sh
