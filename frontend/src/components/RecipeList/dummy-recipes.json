@@ -3,17 +3,18 @@
     {
       "id": 1,
       "title": "Mac & Cheese",
+      "description": "A simple meal that's quick and easy to make.",
       "creatorName": "Min Mao",
       "creatorId": 1,
       "tags": ["Halal", "Vegetarian"],
       "ingredients": "lalala",
-      "instructions": [
+      "steps": [
         {
-          "text": "lala",
+          "text": "lalala1",
           "image": ""
         },
         {
-          "text": "lala",
+          "text": "lala22",
           "image": ""
         }
       ]
