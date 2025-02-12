@@ -7,9 +7,10 @@ function RecipeList() {
   return (
     <Box
       sx={{
-        width: { sm: "100%", md: "75%", lg: "50%" },
+        display: "flex",
+        flexWrap: "wrap",
+        justifyContent: "space-evenly",
         pt: "10px",
-        border: "1px solid red",
       }}
     >
       {recipes.map((recipe) => {
@@ -19,9 +20,11 @@ function RecipeList() {
             id={recipe.id}
             title={recipe.title}
             description={recipe.description}
-            creatorName={recipe.creatorName}
-            creatorId={recipe.creatorId}
-            ingredients={recipe.ingredients}
+            userId={recipe.user}
+            preparationTime={recipe.preparationTime}
+            cookingTime={recipe.cookingTime}
+            difficultyLevel={recipe.difficultyLevel}
+            servings={recipe.servings}
             steps={recipe.steps}
           />
         );
