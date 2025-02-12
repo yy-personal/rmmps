@@ -62,7 +62,7 @@ jobs:
         run: chmod +x recipe_management_backend/mvnw
 
       - name: Build and Test Spring Boot App
-        run: cd backend && ./mvnw clean verify
+        run: cd recipe_management_backend && ./mvnw clean verify
 
   sast_scan:
     name: Static Application Security Testing (SAST)
