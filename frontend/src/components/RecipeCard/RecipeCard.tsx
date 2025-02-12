@@ -29,7 +29,7 @@ function RecipeCard(props: RecipeType) {
   return (
     <Box
       sx={{
-        width: { sm: "100%", md: "50%", lg: "25%" },
+        width: { xs: "100%", sm: "100%", md: "50%", lg: "25%" },
         padding: "3px",
         boxSizing: "border-box",
       }}

@@ -4,6 +4,7 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import "./index.css";
 import App from "./App";
 import RecipeList from "components/RecipeList/RecipeList";
+import RecipeForm from "components/RecipeForm/RecipeForm";
 
 const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement
@@ -14,6 +15,7 @@ root.render(
       <Routes>
         <Route path="/" element={<App />}>
           <Route path="/" element={<RecipeList />} />
+          <Route path="/recipe/new" element={<RecipeForm />} />
           {/* <Route path="*" element={<PageNotFound />} /> */}
         </Route>
       </Routes>
