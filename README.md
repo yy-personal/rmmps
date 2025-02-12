@@ -22,8 +22,8 @@ A comprehensive system for managing recipes, planning meals, and generating shop
 - UI Library: Material-UI
 
 ### Backend
-- Language: Java
-- Framework: Spring Boot (LTS version)
+- Language: Java 17
+- Framework: Spring Boot 3(LTS version)
 - Database: MySQL (hosted on AWS)
 
 ### DevOps
@@ -54,7 +54,7 @@ project-root/
 
 ### Prerequisites
 - Node.js (for frontend development)
-- JDK (LTS version)
+- JDK 17
 - MySQL
 - Git
 
