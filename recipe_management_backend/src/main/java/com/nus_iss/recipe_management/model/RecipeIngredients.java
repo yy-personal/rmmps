@@ -3,21 +3,23 @@ package com.nus_iss.recipe_management.model;
 import jakarta.persistence.*;
 import lombok.*;
 
-// Recipe-Ingredient Mapping
 @Entity
 @Table(name = "RecipeIngredients")
 @Getter @Setter
 @NoArgsConstructor @AllArgsConstructor
-public class RecipeIngredients
-{
-    @Id
+public class RecipeIngredients {
+
+    @EmbeddedId
+    private RecipeIngredientsId id;
+
     @ManyToOne
-    @JoinColumn(name = "recipeId")
+    @MapsId("recipeId")  // Maps to recipeId in RecipeIngredientsId
+    @JoinColumn(name = "recipeId", nullable = false)
     private Recipe recipe;
 
-    @Id
     @ManyToOne
-    @JoinColumn(name = "ingredientId")
+    @MapsId("ingredientId")  // Maps to ingredientId in RecipeIngredientsId
+    @JoinColumn(name = "ingredientId", nullable = false)
     private Ingredient ingredient;
 
     @Column(nullable = false)
