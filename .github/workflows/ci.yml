@@ -1,0 +1,123 @@
+name: CI Pipeline
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  lint_frontend:
+    name: Lint Frontend (React TypeScript)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: cd frontend && npm install
+
+      - name: Run ESLint
+        run: cd frontend && npx eslint . --ext .ts,.tsx
+
+  load_env:
+    name: Load Environment Variables From Secrets
+    runs-on: ubuntu-latest
+
+    env:
+      DB_USERNAME: ${{ secrets.DB_USERNAME }}
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+
+    steps:
+      - name: Set up environment variables
+        run: |
+          echo "DB_USERNAME=${{ secrets.DB_USERNAME }}" >> $GITHUB_ENV
+          echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> $GITHUB_ENV
+
+      - name: Debug Environment Variables
+        run: |
+          echo "DB_USERNAME=$DB_USERNAME"
+          echo "DB_PASSWORD is set but hidden"
+  
+  test_backend:
+    name: Test Backend (Spring Boot JUnit)
+    runs-on: ubuntu-latest
+    env:
+      DB_USERNAME: ${{ secrets.DB_USERNAME }}
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      - name: Grant execute permissions to Maven Wrapper
+        run: chmod +x recipe_management_backend/mvnw
+
+      - name: Build and Test Spring Boot App
+        run: cd recipe_management_backend && ./mvnw clean verify
+
+  sast_scan:
+    name: Static Application Security Testing (SAST)
+    runs-on: ubuntu-latest
+    needs: [test_backend]
+    env:
+      DB_USERNAME: ${{ secrets.DB_USERNAME }}
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      
+      - name: Set up Java (LTS Version)
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Grant execute permissions to Maven Wrapper
+        run: chmod +x recipe_management_backend/mvnw
+
+      - name: Build Java Backend
+        run: cd recipe_management_backend && ./mvnw clean package  # Ensure code is built
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript, java
+          source-root: recipe_management_backend/src/main/java  # Explicitly specify source
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+
+  dast_scan:
+    name: Dynamic Application Security Testing (DAST)
+    runs-on: ubuntu-latest
+    needs: sast_scan
+    env:
+      DB_USERNAME: ${{ secrets.DB_USERNAME }}
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Grant execute permissions to Maven Wrapper
+        run: chmod +x recipe_management_backend/mvnw
+
+      - name: Start Backend Server
+        run: |
+          cd recipe_management_backend
+          ./mvnw spring-boot:run & sleep 15
+
+      - name: Run OWASP ZAP Scan
+        uses: zaproxy/action-full-scan@v0.4.0
+        with:
+          target: 'http://localhost:8080'
+
+
