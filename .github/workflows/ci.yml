@@ -93,8 +93,10 @@ jobs:
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
+          with:
           languages: javascript, java
-          source-root: recipe_management_backend/src/main/java
+          source-root: .
+          queries: security-and-quality
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
