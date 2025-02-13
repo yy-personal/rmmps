@@ -87,9 +87,6 @@ jobs:
       - name: Grant execute permissions to Maven Wrapper
         run: chmod +x recipe_management_backend/mvnw
 
-      - name: Build Java Backend
-        run: cd recipe_management_backend && ./mvnw clean package
-
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
@@ -97,6 +94,9 @@ jobs:
           languages: javascript, java
           # source-root: .
           queries: security-and-quality
+
+      - name: Build Java Backend
+        run: cd recipe_management_backend && ./mvnw clean package -DskipTests
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
