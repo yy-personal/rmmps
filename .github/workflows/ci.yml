@@ -4,6 +4,10 @@ on:
   push:
   pull_request:
 
+permissions:
+  contents: read
+  security-events: write  # Required for CodeQL & SARIF processing
+
 jobs:
   lint_frontend:
     name: Lint Frontend (React TypeScript)
@@ -28,11 +32,9 @@ jobs:
   load_env:
     name: Load Environment Variables From Secrets
     runs-on: ubuntu-latest
-
     env:
       DB_USERNAME: ${{ secrets.DB_USERNAME }}
       DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-
     steps:
       - name: Set up environment variables
         run: |
@@ -90,9 +92,7 @@ jobs:
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
-          with:
           languages: javascript, java
-          # source-root: .
           queries: security-and-quality
 
       - name: Build Java Backend
@@ -100,6 +100,14 @@ jobs:
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
+
+      - name: Merge SARIF Results
+        run: |
+          /opt/hostedtoolcache/CodeQL/*/x64/codeql/codeql github merge-results \
+            --output /home/runner/work/_temp/combined-sarif/combined.sarif \
+            --sarif /home/runner/work/rmmps/results/java.sarif \
+            --sarif /home/runner/work/rmmps/results/javascript.sarif \
+            --sarif-merge-runs-from-equal-category
 
   dast_scan:
     name: Dynamic Application Security Testing (DAST)
@@ -119,7 +127,8 @@ jobs:
       - name: Start Backend Server
         run: |
           cd recipe_management_backend
-          ./mvnw spring-boot:run & sleep 15
+          ./mvnw spring-boot:run &
+          sleep 20  
 
       - name: Run OWASP ZAP Scan
         uses: zaproxy/action-full-scan@v0.4.0
