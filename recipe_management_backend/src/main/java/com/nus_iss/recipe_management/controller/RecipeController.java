@@ -32,8 +32,16 @@ public class RecipeController {
     // Get a recipe by ID
     @GetMapping("/{id}")
     public ResponseEntity<Recipe> getRecipeById(@PathVariable Integer id) {
-        Recipe recipe = recipeService.getRecipeById(id);
-        return recipe != null ? ResponseEntity.ok(recipe) : ResponseEntity.notFound().build();
+        ResponseEntity<Recipe> response;
+        try {
+            Recipe recipe = recipeService.getRecipeById(id);
+            response = ResponseEntity.ok(recipe);
+        } catch (RecipeNotFoundException ex) {
+            response = ResponseEntity.notFound().build();
+        } catch (Exception ex) {
+            response = ResponseEntity.internalServerError().build();
+        }
+        return response;
     }
 
     // Update a recipe by ID
