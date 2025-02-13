@@ -18,37 +18,66 @@ import Typography from "@mui/material/Typography";
 import { useHttpClient } from "hooks/http-hook";
 
 function RecipeForm() {
-  const [recipe, setRecipe] = useState({
+  const [recipeFormState, setRecipeFormState] = useState({
     title: "",
     description: "",
     difficulty: "",
-    preparationTime: 1,
-    cookingTime: 1,
-    servings: 1,
+    preparationTime: null,
+    cookingTime: null,
+    servings: null,
     steps: "",
   });
+  const [errorMessage, setErrorMessage] = useState("");
 
   const { isLoading, sendRequest } = useHttpClient();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type } = e.target;
-    setRecipe({
-      ...recipe,
+    setRecipeFormState({
+      ...recipeFormState,
       [name]: type === "number" ? Number(value) : value, // Convert to number if it's a number input
     });
   };
 
   const handleDifficultyChange = (event: SelectChangeEvent) => {
-    setRecipe({
-      ...recipe,
+    setRecipeFormState({
+      ...recipeFormState,
       difficulty: event.target.value,
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    alert("test");
-    console.log("Recipe Submitted:", recipe);
+    console.log("Recipe Submitted:", recipeFormState);
+
+    try {
+      const response = await sendRequest(
+        `${process.env.REACT_APP_BACKEND_URL}/recipes`,
+        "POST",
+        JSON.stringify({
+          title: recipeFormState.title,
+          // description: recipeFormState.description,
+          difficulty: recipeFormState.difficulty,
+          preparationTime: recipeFormState.preparationTime,
+          cookingTime: recipeFormState.cookingTime,
+          servings: recipeFormState.servings,
+          steps: recipeFormState.steps,
+        }),
+        {
+          "Content-Type": "application/json",
+        }
+      );
+
+      const responseData = await response.json();
+
+      if (!response.ok) {
+        setErrorMessage(responseData.message || "unknown error message");
+      } else {
+        alert("successfully created recipe");
+      }
+    } catch (err: any) {
+      setErrorMessage(err.message);
+    }
   };
   return (
     <Box
@@ -69,7 +98,7 @@ function RecipeForm() {
             <Typography
               sx={{
                 fontSize: "1.7rem",
-                fontWeight: "bold",
+                fontWeight: "600",
                 textAlign: "left",
                 mb: "25px",
               }}
@@ -80,7 +109,7 @@ function RecipeForm() {
               fullWidth
               label="Recipe Title"
               name="title"
-              value={recipe.title}
+              value={recipeFormState.title}
               onChange={handleChange}
               required
               sx={{ mb: 2 }}
@@ -89,7 +118,7 @@ function RecipeForm() {
               fullWidth
               label="Preparation Time (Minutes)"
               name="preparationTime"
-              value={recipe.preparationTime}
+              value={recipeFormState.preparationTime}
               onChange={handleChange}
               required
               type="number"
@@ -105,7 +134,7 @@ function RecipeForm() {
               fullWidth
               label="Cooking Time (Minutes)"
               name="cookingTime"
-              value={recipe.cookingTime}
+              value={recipeFormState.cookingTime}
               onChange={handleChange}
               required
               type="number"
@@ -122,7 +151,7 @@ function RecipeForm() {
               <Select
                 labelId="difficultyLabel"
                 // id="demo-simple-select"
-                value={recipe.difficulty}
+                value={recipeFormState.difficulty}
                 label="Difficulty Level"
                 onChange={handleDifficultyChange}
               >
@@ -136,7 +165,7 @@ function RecipeForm() {
               fullWidth
               label="Servings"
               name="servings"
-              value={recipe.servings}
+              value={recipeFormState.servings}
               onChange={handleChange}
               required
               type="number"
