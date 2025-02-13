@@ -102,8 +102,6 @@ jobs:
         uses: github/codeql-action/analyze@v3
         with:
           category: "/language:java"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Explicitly pass GitHub token
 
       - name: Merge SARIF Results
         run: |
@@ -112,8 +110,6 @@ jobs:
             --sarif /home/runner/work/rmmps/results/java.sarif \
             --sarif /home/runner/work/rmmps/results/javascript.sarif \
             --sarif-merge-runs-from-equal-category
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Explicitly pass GitHub token
 
 
   dast_scan:
