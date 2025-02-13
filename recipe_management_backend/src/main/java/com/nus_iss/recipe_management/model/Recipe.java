@@ -28,7 +28,7 @@ public class Recipe {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private DifficultyLevel difficultyLevel;
+    public DifficultyLevel difficultyLevel;
 
     @Column(nullable = false)
     private Integer servings;
@@ -40,7 +40,3 @@ public class Recipe {
     private LocalDateTime createdAt = LocalDateTime.now();
 }
 
-// Difficulty Level Enum
-enum DifficultyLevel {
-    EASY, MEDIUM, HARD
-}
