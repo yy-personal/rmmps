@@ -95,7 +95,7 @@ jobs:
         with:
           with:
           languages: javascript, java
-          source-root: .
+          # source-root: .
           queries: security-and-quality
 
       - name: Perform CodeQL Analysis
