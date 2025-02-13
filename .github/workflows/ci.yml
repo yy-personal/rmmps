@@ -19,7 +19,7 @@ jobs:
           cache: 'npm'
 
       - name: Install Dependencies
-        run: cd frontend && npm install
+        run: cd frontend && npm ci
 
       - name: Run ESLint
         run: cd frontend && npx eslint . --ext .ts,.tsx
@@ -42,7 +42,7 @@ jobs:
         run: |
           echo "DB_USERNAME=$DB_USERNAME"
           echo "DB_PASSWORD is set but hidden"
-  
+
   test_backend:
     name: Test Backend (Spring Boot JUnit)
     runs-on: ubuntu-latest
@@ -58,6 +58,7 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
+
       - name: Grant execute permissions to Maven Wrapper
         run: chmod +x recipe_management_backend/mvnw
 
@@ -67,10 +68,8 @@ jobs:
   sast_scan:
     name: Static Application Security Testing (SAST)
     runs-on: ubuntu-latest
-    needs: [test_backend]
-    env:
-      DB_USERNAME: ${{ secrets.DB_USERNAME }}
-      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+    needs: test_backend
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/SIT' || github.ref == 'refs/heads/cicd-setup'
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -85,13 +84,13 @@ jobs:
         run: chmod +x recipe_management_backend/mvnw
 
       - name: Build Java Backend
-        run: cd recipe_management_backend && ./mvnw clean package  # Ensure code is built
+        run: cd recipe_management_backend && ./mvnw clean package
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
           languages: javascript, java
-          source-root: recipe_management_backend/src/main/java  # Explicitly specify source
+          source-root: recipe_management_backend/src/main/java
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
@@ -100,9 +99,7 @@ jobs:
     name: Dynamic Application Security Testing (DAST)
     runs-on: ubuntu-latest
     needs: sast_scan
-    env:
-      DB_USERNAME: ${{ secrets.DB_USERNAME }}
-      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/cicd-setup'
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -119,5 +116,3 @@ jobs:
         uses: zaproxy/action-full-scan@v0.4.0
         with:
           target: 'http://localhost:8080'
-
-
