@@ -1,0 +1,59 @@
+{
+  "recipes": [
+    {
+      "id": 1,
+      "title": "Mac & Cheese",
+      "description": "A simple meal that's quick and easy to make.",
+      "user": 1,
+      "preparationTime": 10,
+      "cookingTime": 60,
+      "difficultyLevel": "EASY",
+      "servings": 2,
+      "steps": "1. cook\n2. eat\n3. complain"
+    },
+    {
+      "id": 2,
+      "title": "Mac & Cheese",
+      "description": "A simple meal that's quick and easy to make.",
+      "user": 1,
+      "preparationTime": 10,
+      "cookingTime": 60,
+      "difficultyLevel": "EASY",
+      "servings": 2,
+      "steps": "1. cook\n2. eat\n3. complain"
+    },
+    {
+      "id": 3,
+      "title": "Mac & Cheese",
+      "description": "A simple meal that's quick and easy to make.",
+      "user": 1,
+      "preparationTime": 10,
+      "cookingTime": 60,
+      "difficultyLevel": "EASY",
+      "servings": 2,
+      "steps": "1. cook\n2. eat\n3. complain"
+    },
+    {
+      "id": 4,
+      "title": "Mac & Cheese",
+      "description": "A simple meal that's quick and easy to make.",
+      "user": 1,
+      "preparationTime": 10,
+      "cookingTime": 60,
+      "difficultyLevel": "EASY",
+      "servings": 2,
+      "steps": "1. cook\n2. eat\n3. complain"
+    },
+    {
+      "id": 5,
+      "title": "Mac & Cheese",
+      "description": "A simple meal that's quick and easy to make.",
+      "user": 1,
+      "preparationTime": 10,
+      "cookingTime": 60,
+      "difficultyLevel": "EASY",
+      "servings": 2,
+      "steps": "1. cook\n2. eat\n3. complain"
+    }
+  ]
+}
