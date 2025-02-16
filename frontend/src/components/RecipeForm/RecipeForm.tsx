@@ -21,10 +21,10 @@ function RecipeForm() {
   const [recipeFormState, setRecipeFormState] = useState({
     title: "",
     description: "",
-    difficulty: "",
-    preparationTime: null,
-    cookingTime: null,
-    servings: null,
+    difficultyLevel: "",
+    preparationTime: "",
+    cookingTime: "",
+    servings: "",
     steps: "",
   });
   const [errorMessage, setErrorMessage] = useState("");
@@ -35,14 +35,15 @@ function RecipeForm() {
     const { name, value, type } = e.target;
     setRecipeFormState({
       ...recipeFormState,
-      [name]: type === "number" ? Number(value) : value, // Convert to number if it's a number input
+      // Convert to number if it's a number input
+      [name]: type === "number" ? Number(value) : value,
     });
   };
 
   const handleDifficultyChange = (event: SelectChangeEvent) => {
     setRecipeFormState({
       ...recipeFormState,
-      difficulty: event.target.value,
+      difficultyLevel: event.target.value,
     });
   };
 
@@ -57,7 +58,11 @@ function RecipeForm() {
         JSON.stringify({
           title: recipeFormState.title,
           // description: recipeFormState.description,
-          difficulty: recipeFormState.difficulty,
+          user: {
+            // TODO: use current authenticated user instead of hard-coding
+            userId: 1,
+          },
+          difficultyLevel: recipeFormState.difficultyLevel,
           preparationTime: recipeFormState.preparationTime,
           cookingTime: recipeFormState.cookingTime,
           servings: recipeFormState.servings,
@@ -150,8 +155,7 @@ function RecipeForm() {
               <InputLabel id="difficultyLabel">Difficulty Level</InputLabel>
               <Select
                 labelId="difficultyLabel"
-                // id="demo-simple-select"
-                value={recipeFormState.difficulty}
+                value={recipeFormState.difficultyLevel}
                 label="Difficulty Level"
                 onChange={handleDifficultyChange}
               >
