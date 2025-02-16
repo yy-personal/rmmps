@@ -15,7 +15,7 @@ root.render(
       <Routes>
         <Route path="/" element={<App />}>
           <Route path="/" element={<RecipeList />} />
-          <Route path="/recipe/new" element={<RecipeForm />} />
+          <Route path="/contribute/" element={<RecipeForm />} />
           {/* <Route path="*" element={<PageNotFound />} /> */}
         </Route>
       </Routes>

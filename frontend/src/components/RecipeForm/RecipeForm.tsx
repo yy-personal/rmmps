@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import {
   Button,
@@ -18,6 +19,7 @@ import Typography from "@mui/material/Typography";
 import { useHttpClient } from "hooks/http-hook";
 
 function RecipeForm() {
+  const navigate = useNavigate();
   const [recipeFormState, setRecipeFormState] = useState({
     title: "",
     description: "",
@@ -79,6 +81,7 @@ function RecipeForm() {
         setErrorMessage(responseData.message || "unknown error message");
       } else {
         alert("successfully created recipe");
+        navigate("/");
       }
     } catch (err: any) {
       setErrorMessage(err.message);
