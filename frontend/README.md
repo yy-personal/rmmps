@@ -8,6 +8,15 @@ The front service for RMMPS.
 
 - Node: Install at https://nodejs.org/en/download
 
+### Configuration
+
+Configure the backend connection in `.env`:
+
+```.env
+REACT_APP_BACKEND_URL=http://localhost:8080/api
+REACT_APP_ASSET_URL=http://localhost:8080
+```
+
 ### Running Locally
 
 ```bash
