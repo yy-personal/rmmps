@@ -1,0 +1,118 @@
+{
+  "recipes": [
+    {
+      "id": 1,
+      "title": "Mac & Cheese",
+      "description": "A simple meal that's quick and easy to make.",
+      "creatorName": "Min Mao",
+      "creatorId": 1,
+      "tags": ["Halal", "Vegetarian"],
+      "ingredients": "lalala",
+      "steps": [
+        {
+          "text": "lalala1",
+          "image": ""
+        },
+        {
+          "text": "lala22",
+          "image": ""
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Mac & Cheese",
+      "description": "A simple meal that's quick and easy to make.",
+      "creatorName": "Min Mao",
+      "creatorId": 1,
+      "tags": ["Halal", "Vegetarian"],
+      "ingredients": "lalala",
+      "steps": [
+        {
+          "text": "lalala1",
+          "image": ""
+        },
+        {
+          "text": "lala22",
+          "image": ""
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Mac & Cheese",
+      "description": "A simple meal that's quick and easy to make.",
+      "creatorName": "Min Mao",
+      "creatorId": 1,
+      "tags": ["Halal", "Vegetarian"],
+      "ingredients": "lalala",
+      "steps": [
+        {
+          "text": "lalala1",
+          "image": ""
+        },
+        {
+          "text": "lala22",
+          "image": ""
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Mac & Cheese",
+      "description": "A simple meal that's quick and easy to make.",
+      "creatorName": "Min Mao",
+      "creatorId": 1,
+      "tags": ["Halal", "Vegetarian"],
+      "ingredients": "lalala",
+      "steps": [
+        {
+          "text": "lalala1",
+          "image": ""
+        },
+        {
+          "text": "lala22",
+          "image": ""
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Mac & Cheese",
+      "description": "A simple meal that's quick and easy to make.",
+      "creatorName": "Min Mao",
+      "creatorId": 1,
+      "tags": ["Halal", "Vegetarian"],
+      "ingredients": "lalala",
+      "steps": [
+        {
+          "text": "lalala1",
+          "image": ""
+        },
+        {
+          "text": "lala22",
+          "image": ""
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Mac & Cheese",
+      "description": "A simple meal that's quick and easy to make.",
+      "creatorName": "Min Mao",
+      "creatorId": 1,
+      "tags": ["Halal", "Vegetarian"],
+      "ingredients": "lalala",
+      "steps": [
+        {
+          "text": "lalala1",
+          "image": ""
+        },
+        {
+          "text": "lala22",
+          "image": ""
+        }
+      ]
+    }
+  ]
+}
