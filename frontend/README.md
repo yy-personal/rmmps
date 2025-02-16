@@ -1,6 +1,6 @@
 # RMMPS - Frontend service
 
-The front service for RMMPS.
+The frontend service for RMMPS.
 
 ## Running the app locally
 
