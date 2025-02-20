@@ -9,6 +9,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 
+import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -27,14 +28,29 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
+
+        // Defer token validation for /refresh
+        if (request.getRequestURI().equals("/api/auth/refresh")) {
+            chain.doFilter(request, response);
+            return;
+        }
+
         String token = extractToken(request);
         if (token != null) {
+            String tokenType = jwtUtil.extractTokenType(token);
+            // Reject refresh tokens in authentication
+            if ("REFRESH".equals(tokenType)) {
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.getWriter().write("Refresh tokens are not allowed for authentication");
+                return;
+            }
             String username = jwtUtil.extractUsername(token);
             UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
             if (jwtUtil.validateToken(token, username)) {
                 UsernamePasswordAuthenticationToken authToken =
                         new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authToken);
             }
 

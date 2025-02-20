@@ -1,6 +1,8 @@
 package com.nus_iss.recipe_management.controller;
 
 import com.nus_iss.recipe_management.util.JwtUtil;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -28,8 +30,38 @@ public class AuthController {
                 new UsernamePasswordAuthenticationToken(credentials.get("username"), credentials.get("password")));
 
         UserDetails userDetails = userDetailsService.loadUserByUsername(credentials.get("username"));
-        String token = jwtUtil.generateToken(userDetails.getUsername());
+        String accessToken = jwtUtil.generateAccessToken(userDetails.getUsername());
+        String refreshToken = jwtUtil.generateRefreshToken(userDetails.getUsername());
 
-        return Map.of("token", token);
+
+        return Map.of("accessToken", accessToken, "refreshToken", refreshToken);
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<?> refreshToken(@RequestHeader("Authorization") String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(HttpServletResponse.SC_UNAUTHORIZED).body("Missing or invalid Authorization header");
+        }
+
+        String refreshToken = authHeader.substring(7); // Extract token after "Bearer "
+        String tokenType = jwtUtil.extractTokenType(refreshToken);
+
+        if (!"REFRESH".equals(tokenType)) {
+            return ResponseEntity.status(HttpServletResponse.SC_FORBIDDEN).body("Only refresh tokens are allowed for refresh");
+        }
+
+
+        String username = jwtUtil.extractUsername(refreshToken);
+        UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+
+        if (!jwtUtil.validateToken(refreshToken, userDetails.getUsername())) {
+            return ResponseEntity.status(HttpServletResponse.SC_FORBIDDEN).body("Invalid refresh token");
+        }
+
+        String newAccessToken = jwtUtil.generateAccessToken(username);
+
+        return ResponseEntity.ok(Map.of(
+                "accessToken", newAccessToken
+        ));
     }
 }

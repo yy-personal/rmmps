@@ -11,18 +11,47 @@ import java.util.Date;
 public class JwtUtil {
     private static final String SECRET_KEY = "nus-iss-Secret-Key-JWT-Generation-31415926"; // Use a long, random secret key
     private static final long EXPIRATION_TIME = 86400000; // 1 day in milliseconds
+    private static final long ACCESS_TOKEN_EXPIRATION = 15 * 60 * 1000;  // 15 minutes
+    private static final long REFRESH_TOKEN_EXPIRATION = 7 * 24 * 3600 * 1000; // 7 days
 //    private static final long EXPIRATION_TIME = 180000; // 3 minutes in milliseconds
 
     private final Key key = Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
 
-    public String generateToken(String username) {
+    public String generateAccessToken(String username) {
         return Jwts.builder()
                 .setSubject(username)
+                .claim("tokenType", "ACCESS") // Add token type
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
+                .setExpiration(new Date(System.currentTimeMillis() + ACCESS_TOKEN_EXPIRATION))
                 .signWith(key, SignatureAlgorithm.HS256)
                 .compact();
     }
+
+    public String generateRefreshToken(String username) {
+        return Jwts.builder()
+                .setSubject(username)
+                .claim("tokenType", "REFRESH") // Add token type
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + REFRESH_TOKEN_EXPIRATION))
+                .signWith(key, SignatureAlgorithm.HS256)
+                .compact();
+    }
+
+    // Extract Token Type
+    public String extractTokenType(String token) {
+        return Jwts.parserBuilder().setSigningKey(key).build()
+                .parseClaimsJws(token).getBody().get("tokenType", String.class);
+//        return extractClaim(token, claims -> claims.get("tokenType", String.class));
+    }
+
+//    private <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
+//        Claims claims = Jwts.parserBuilder()
+//                .setSigningKey(getSigningKey())
+//                .build()
+//                .parseClaimsJws(token)
+//                .getBody();
+//        return claimsResolver.apply(claims);
+//    }
 
     public String extractUsername(String token) {
         return Jwts.parserBuilder().setSigningKey(key).build()
