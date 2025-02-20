@@ -31,7 +31,7 @@ function RecipeForm() {
   });
   const [errorMessage, setErrorMessage] = useState("");
 
-  const { isLoading, sendRequest } = useHttpClient();
+  const { isLoading, sendRequest, statusCode, serverError } = useHttpClient();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type } = e.target;
@@ -54,7 +54,7 @@ function RecipeForm() {
     console.log("Recipe Submitted:", recipeFormState);
 
     try {
-      const response = await sendRequest(
+      const responseData = await sendRequest(
         `${process.env.REACT_APP_BACKEND_URL}/recipes`,
         "POST",
         JSON.stringify({
@@ -62,7 +62,7 @@ function RecipeForm() {
           // description: recipeFormState.description,
           user: {
             // TODO: use current authenticated user instead of hard-coding
-            userId: 1,
+            userId: 3,
           },
           difficultyLevel: recipeFormState.difficultyLevel,
           preparationTime: recipeFormState.preparationTime,
@@ -72,18 +72,13 @@ function RecipeForm() {
         }),
         {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${process.env.REACT_APP_ACCESS_TOKEN}`,
         }
       );
 
-      const responseData = await response.json();
-
-      if (!response.ok) {
-        setErrorMessage(responseData.message || "unknown error message");
-      } else {
-        alert("successfully created recipe");
-        navigate("/");
-      }
-    } catch (err: any) {
+      alert("successfully created recipe");
+      navigate("/");
+    } catch (err) {
       setErrorMessage(err.message);
     }
   };

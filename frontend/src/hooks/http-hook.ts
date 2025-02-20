@@ -33,13 +33,16 @@ export const useHttpClient = () => {
 
         setStatusCode(response.status);
         if (!response.ok) {
-          throw new Error(responseData.message || "Unknown error occurred.");
+          throw new Error(
+            responseData.message ||
+              `Unknown error occurred. Status ${response.status}`
+          );
         }
 
         setIsLoading(false);
         return responseData;
       } catch (err) {
-        setServerError(err.message);
+        setServerError(err.message || "Unknown error occurred");
         setIsLoading(false);
         throw err;
       }
