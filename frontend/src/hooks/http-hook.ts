@@ -2,6 +2,8 @@ import { useCallback, useState, useRef, useEffect } from "react";
 
 export const useHttpClient = () => {
   const [isLoading, setIsLoading] = useState(false);
+  const [serverError, setServerError] = useState("");
+  const [statusCode, setStatusCode] = useState<Number>();
   const activeHttpRequests = useRef<AbortController[]>([]);
 
   const sendRequest = useCallback(
@@ -23,13 +25,21 @@ export const useHttpClient = () => {
           signal: httpAbortCtrl.signal,
         });
 
+        const responseData = await response.json();
+
         activeHttpRequests.current = activeHttpRequests.current.filter(
           (reqCtrl) => reqCtrl !== httpAbortCtrl
         );
 
+        setStatusCode(response.status);
+        if (!response.ok) {
+          throw new Error(responseData.message || "Unknown error occurred.");
+        }
+
         setIsLoading(false);
-        return response;
+        return responseData;
       } catch (err) {
+        setServerError(err.message);
         setIsLoading(false);
         throw err;
       }
@@ -43,5 +53,5 @@ export const useHttpClient = () => {
     };
   }, []);
 
-  return { isLoading, sendRequest };
+  return { isLoading, sendRequest, serverError, statusCode };
 };
