@@ -31,7 +31,11 @@ public class User {
         return email;
     }
 
-    public String  getPasswordHash() {
+    public String getPasswordHash() {
         return passwordHash;
+    }
+
+    public void setPasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
     }
 }
