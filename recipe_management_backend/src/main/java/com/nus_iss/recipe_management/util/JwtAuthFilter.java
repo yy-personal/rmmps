@@ -1,5 +1,9 @@
 package com.nus_iss.recipe_management.util;
 
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.MalformedJwtException;
+import io.jsonwebtoken.UnsupportedJwtException;
+import io.jsonwebtoken.security.SignatureException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -14,6 +18,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.io.PrintWriter;
 
 @Component
 public class JwtAuthFilter extends OncePerRequestFilter {
@@ -35,27 +40,50 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             return;
         }
 
-        String token = extractToken(request);
-        if (token != null) {
-            String tokenType = jwtUtil.extractTokenType(token);
-            // Reject refresh tokens in authentication
-            if ("REFRESH".equals(tokenType)) {
-                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                response.getWriter().write("Refresh tokens are not allowed for authentication");
-                return;
-            }
-            String username = jwtUtil.extractUsername(token);
-            UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+        try {
+            String token = extractToken(request);
+            if (token != null) {
+                String tokenType = jwtUtil.extractTokenType(token);
+                // Reject refresh tokens in authentication
+                if ("REFRESH".equals(tokenType)) {
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    response.getWriter().write("Refresh tokens are not allowed for authentication");
+                    return;
+                }
+                String username = jwtUtil.extractUsername(token);
+                UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
-            if (jwtUtil.validateToken(token, username)) {
-                UsernamePasswordAuthenticationToken authToken =
-                        new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authToken);
-            }
+                if (jwtUtil.validateToken(token, username)) {
+                    UsernamePasswordAuthenticationToken authToken =
+                            new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(authToken);
+                }
 
+            }
+        } catch (ExpiredJwtException e) {
+            sendErrorResponse(response, "Token expired. Please login again.", HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        } catch (SignatureException | MalformedJwtException e) {
+            sendErrorResponse(response, "Invalid token. Authentication failed.", HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        } catch (UnsupportedJwtException e) {
+            sendErrorResponse(response, "Unsupported JWT token.", HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        } catch (IllegalArgumentException e) {
+            sendErrorResponse(response, "Token claims string is empty.", HttpServletResponse.SC_UNAUTHORIZED);
+            return;
         }
+
         chain.doFilter(request, response);
+    }
+
+    private void sendErrorResponse(HttpServletResponse response, String message, int status) throws IOException {
+        response.setStatus(status);
+        response.setContentType("application/json");
+        PrintWriter writer = response.getWriter();
+        writer.write("{\"message\": \"" + message + "\"}");
+        writer.flush();
     }
 
     private String extractToken(HttpServletRequest request) {
