@@ -41,17 +41,7 @@ public class JwtUtil {
     public String extractTokenType(String token) {
         return Jwts.parserBuilder().setSigningKey(key).build()
                 .parseClaimsJws(token).getBody().get("tokenType", String.class);
-//        return extractClaim(token, claims -> claims.get("tokenType", String.class));
     }
-
-//    private <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
-//        Claims claims = Jwts.parserBuilder()
-//                .setSigningKey(getSigningKey())
-//                .build()
-//                .parseClaimsJws(token)
-//                .getBody();
-//        return claimsResolver.apply(claims);
-//    }
 
     public String extractUsername(String token) {
         return Jwts.parserBuilder().setSigningKey(key).build()
