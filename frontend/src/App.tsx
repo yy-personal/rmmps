@@ -3,13 +3,13 @@ import Box from "@mui/material/Box";
 import Header from "components/Header/Header";
 import { Outlet } from "react-router-dom";
 
-import { AuthContext } from "./components/contexts/auth-context";
-import { useCallback, useState } from "react";
+import { AuthContext } from "./contexts/auth-context";
+import { useCallback, useEffect, useState } from "react";
 import { useHttpClient } from "hooks/http-hook";
 
 const userDataIdentifier = "rmmps-userData";
 const defaultTokenExpiry = 1000 * 890; // 15 minutes - 10 seconds buffer
-let refreshTimer;
+let refreshTimer: NodeJS.Timeout;
 
 function App() {
   const { sendRequest, serverError, statusCode } = useHttpClient();
@@ -29,7 +29,7 @@ function App() {
       _userEmail: string,
       _accessToken: string,
       _refreshToken: string,
-      expirationDate: Date
+      expirationDate: Date | null
     ) => {
       // setUserName(_userName);
       setAccessToken(_accessToken);
@@ -61,14 +61,14 @@ function App() {
         throw new Error("User is not logged in!");
       }
 
-      const responseData = await sendRequest(
-        `${process.env.REACT_APP_BACKEND_URL}/auth/logout`,
-        "POST",
-        null,
-        {
-          Authorization: `Bearer ${accessToken}`,
-        }
-      );
+      // const responseData = await sendRequest(
+      //   `${process.env.REACT_APP_BACKEND_URL}/auth/logout`,
+      //   "POST",
+      //   null,
+      //   {
+      //     Authorization: `Bearer ${accessToken}`,
+      //   }
+      // );
 
       /* Update states and local storage */
       setAccessToken("");
@@ -79,14 +79,12 @@ function App() {
       localStorage.removeItem(userDataIdentifier);
       window.location.reload();
     } catch (err) {
-      console.log(serverError);
+      console.log(err.message || "unknown error");
     }
   }, [accessToken, sendRequest]);
 
   const authRefresh = useCallback(
     async (_refreshToken: string) => {
-      // let responseData;
-
       // alert("refreshing token"); // TODO: remove after sufficient test
       try {
         const responseData = await sendRequest(
@@ -97,8 +95,6 @@ function App() {
             Authorization: `Bearer ${_refreshToken}`,
           }
         );
-
-        // const responseData = await response.json();
 
         setAccessToken(responseData["accessToken"]);
 
@@ -128,22 +124,80 @@ function App() {
         );
       } catch (err) {
         if (statusCode === 401) {
-          // CHECKPOINT
+          console.log("Session expired");
+          logout();
         }
-        logout();
         console.log(serverError);
       }
     },
     [sendRequest, logout]
   );
 
+  useEffect(() => {
+    if (accessTokenExpiry && refreshToken) {
+      const remainingTime = accessTokenExpiry.getTime() - new Date().getTime();
+
+      refreshTimer = setTimeout(() => {
+        authRefresh(refreshToken);
+      }, remainingTime);
+    } else {
+      clearTimeout(refreshTimer);
+    }
+  }, [accessTokenExpiry, refreshToken, authRefresh]);
+
+  // auto-login
+  useEffect(() => {
+    setLoading(true);
+    let storedUserData;
+
+    try {
+      storedUserData = JSON.parse(
+        localStorage.getItem(userDataIdentifier) || ""
+      );
+    } catch (err) {
+      console.log(err.message);
+      return;
+    }
+
+    if (storedUserData && storedUserData.accessToken) {
+      const tokenExpiry = new Date(storedUserData.expiration);
+
+      if (tokenExpiry < new Date()) {
+        // access token expired
+        authRefresh(storedUserData.refreshToken);
+      } else {
+        login(
+          // storedUserData.userName,
+          storedUserData.userEmail,
+          storedUserData.accessToken,
+          storedUserData.refreshToken,
+          new Date(storedUserData.expiration)
+        );
+      }
+    }
+    setLoading(false);
+  }, [login, authRefresh]);
+
   return (
-    <Box className="App">
-      <Header />
-      <Box sx={{ backgroundColor: "#FBFBFB", minHeight: "calc(100vh - 70px)" }}>
-        <Outlet />
+    <AuthContext.Provider
+      value={{
+        isLoggedIn: !!accessToken,
+        accessToken: accessToken,
+        refreshToken: refreshToken,
+        userEmail: userEmail,
+        login: login,
+        logout: logout,
+      }}
+    >
+      <Box className="App">
+        <Header />
+        <Box
+          sx={{ backgroundColor: "#FBFBFB", minHeight: "calc(100vh - 70px)" }}
+        >
+          <Outlet />
+        </Box>
       </Box>
-    </Box>
+    </AuthContext.Provider>
   );
 }
 

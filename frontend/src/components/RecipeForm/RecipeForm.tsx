@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useContext, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import {
@@ -17,8 +17,10 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 
 import { useHttpClient } from "hooks/http-hook";
+import { AuthContext } from "../../contexts/auth-context";
 
 function RecipeForm() {
+  const auth = useContext(AuthContext);
   const navigate = useNavigate();
   const [recipeFormState, setRecipeFormState] = useState({
     title: "",
@@ -29,7 +31,6 @@ function RecipeForm() {
     servings: "",
     steps: "",
   });
-  const [errorMessage, setErrorMessage] = useState("");
 
   const { isLoading, sendRequest, statusCode, serverError } = useHttpClient();
 
@@ -72,16 +73,21 @@ function RecipeForm() {
         }),
         {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${process.env.REACT_APP_ACCESS_TOKEN}`,
+          Authorization: `Bearer ${auth.accessToken}`,
         }
       );
 
       alert("successfully created recipe");
       navigate("/");
     } catch (err) {
-      setErrorMessage(err.message);
+      console.log(`Status code: ${statusCode}`);
+      console.log(serverError);
     }
   };
+  if (!auth.isLoggedIn) {
+    return <Box>Unauthorized Access. Please login.</Box>;
+  }
+
   return (
     <Box
       sx={{

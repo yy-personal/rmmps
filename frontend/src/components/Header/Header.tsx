@@ -1,4 +1,4 @@
-import * as React from "react";
+// import * as React from "react";
 import AppBar from "@mui/material/AppBar";
 import Box from "@mui/material/Box";
 import Toolbar from "@mui/material/Toolbar";
@@ -13,18 +13,22 @@ import Tooltip from "@mui/material/Tooltip";
 import MenuItem from "@mui/material/MenuItem";
 import AdbIcon from "@mui/icons-material/Adb";
 import { useNavigate } from "react-router-dom";
+import { useContext, useState } from "react";
 
-const pages = ["recipes", "shopping", "meals", "contribute"];
-const settings = ["Profile", "Account", "Dashboard", "Logout"];
+import { AuthContext } from "../../contexts/auth-context";
 
 function Header() {
   const navigate = useNavigate();
-  const [anchorElNav, setAnchorElNav] = React.useState<null | HTMLElement>(
-    null
-  );
-  const [anchorElUser, setAnchorElUser] = React.useState<null | HTMLElement>(
-    null
-  );
+  const auth = useContext(AuthContext);
+  const [anchorElNav, setAnchorElNav] = useState<null | HTMLElement>(null);
+  const [anchorElUser, setAnchorElUser] = useState<null | HTMLElement>(null);
+
+  const pages = auth.isLoggedIn
+    ? ["recipes", "shopping", "meals", "contribute"]
+    : ["recipes", "shopping", "meals"];
+  const settings = auth.isLoggedIn
+    ? ["Profile", "Account", "Dashboard", "Logout"]
+    : ["Login"];
 
   const handleOpenNavMenu = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorElNav(event.currentTarget);
@@ -165,7 +169,19 @@ function Header() {
               onClose={handleCloseUserMenu}
             >
               {settings.map((setting) => (
-                <MenuItem key={setting} onClick={handleCloseUserMenu}>
+                <MenuItem
+                  key={setting}
+                  onClick={() => {
+                    if (setting === "Logout") {
+                      auth.logout();
+                      navigate("/recipes");
+                    } else if (setting === "Login") {
+                      redirect("login");
+                    } else {
+                      handleCloseUserMenu();
+                    }
+                  }}
+                >
                   <Typography sx={{ textAlign: "center" }}>
                     {setting}
                   </Typography>
