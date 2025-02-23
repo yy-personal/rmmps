@@ -11,6 +11,7 @@
     "moduleResolution": "Node",
     "resolveJsonModule": true,
     "isolatedModules": true,
+    "useUnknownInCatchVariables": false,
     "jsx": "react-jsx",
     "baseUrl": "./src",
     "paths": {

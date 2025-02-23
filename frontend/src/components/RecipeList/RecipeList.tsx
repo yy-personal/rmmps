@@ -2,12 +2,18 @@ import Box from "@mui/material/Box";
 import data from "./dummy-recipes.json";
 import RecipeCard from "../RecipeCard/RecipeCard";
 import { useEffect, useState } from "react";
+import { useHttpClient } from "hooks/http-hook";
+
+interface User {
+  userId: number;
+  email: string;
+}
 
 interface RecipeType {
-  id: number;
+  recipeId: number;
   title: string;
   description: string;
-  userId: number;
+  user: User;
   preparationTime: number;
   cookingTime: number;
   difficultyLevel: string;
@@ -16,18 +22,23 @@ interface RecipeType {
 }
 
 function RecipeList() {
+  const { isLoading, sendRequest } = useHttpClient();
   const [recipes, setRecipes] = useState<RecipeType[]>();
 
   useEffect(() => {
-    setRecipes(
-      data.recipes.map((currRecipe) => {
-        return {
-          ...currRecipe,
-          userId: currRecipe.user,
-        };
-      })
-    );
-  }, []);
+    const fetchRecipes = async () => {
+      try {
+        const responseData = await sendRequest(
+          `${process.env.REACT_APP_BACKEND_URL}/recipes`
+        );
+
+        setRecipes(responseData);
+      } catch (err) {
+        console.log(err.message);
+      }
+    };
+    fetchRecipes();
+  }, [setRecipes, sendRequest]);
 
   if (!recipes) {
     return <Box></Box>;
@@ -44,11 +55,11 @@ function RecipeList() {
       {recipes.map((recipe) => {
         return (
           <RecipeCard
-            key={recipe.id}
-            id={recipe.id}
+            key={recipe.recipeId}
+            recipeId={recipe.recipeId}
             title={recipe.title}
             description={recipe.description}
-            userId={recipe.userId}
+            user={recipe.user}
             preparationTime={recipe.preparationTime}
             cookingTime={recipe.cookingTime}
             difficultyLevel={recipe.difficultyLevel}

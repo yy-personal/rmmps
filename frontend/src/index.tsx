@@ -5,6 +5,7 @@ import "./index.css";
 import App from "./App";
 import RecipeList from "components/RecipeList/RecipeList";
 import RecipeForm from "components/RecipeForm/RecipeForm";
+import Login from "components/Login/Login";
 
 const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement
@@ -15,7 +16,10 @@ root.render(
       <Routes>
         <Route path="/" element={<App />}>
           <Route path="/" element={<RecipeList />} />
-          <Route path="/recipe/new" element={<RecipeForm />} />
+          <Route path="/recipes" element={<RecipeList />} />
+          <Route path="/contribute" element={<RecipeForm />} />
+          <Route path="/login" element={<Login isLogin />} />
+          <Route path="/register" element={<Login isLogin={false} />} />
           {/* <Route path="*" element={<PageNotFound />} /> */}
         </Route>
       </Routes>

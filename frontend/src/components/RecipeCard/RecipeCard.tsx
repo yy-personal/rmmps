@@ -9,15 +9,20 @@ import Typography from "@mui/material/Typography";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import ShareIcon from "@mui/icons-material/Share";
 
+interface User {
+  userId: number;
+  email: string;
+}
+
 interface RecipeStep {
   text: string;
   image: string | null;
 }
 interface RecipeType {
-  id: number;
+  recipeId: number;
   title: string;
   description: string;
-  userId: number;
+  user: User;
   preparationTime: number;
   cookingTime: number;
   difficultyLevel: string;
@@ -35,10 +40,7 @@ function RecipeCard(props: RecipeType) {
       }}
     >
       <Card>
-        <CardHeader
-          title={props.title}
-          subheader={`By: User ${props.userId}`}
-        />
+        <CardHeader title={props.title} subheader={`By: ${props.user.email}`} />
         <CardMedia
           component="img"
           height="194"

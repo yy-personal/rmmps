@@ -1,4 +1,4 @@
-import * as React from "react";
+// import * as React from "react";
 import AppBar from "@mui/material/AppBar";
 import Box from "@mui/material/Box";
 import Toolbar from "@mui/material/Toolbar";
@@ -12,17 +12,27 @@ import Button from "@mui/material/Button";
 import Tooltip from "@mui/material/Tooltip";
 import MenuItem from "@mui/material/MenuItem";
 import AdbIcon from "@mui/icons-material/Adb";
+import { useNavigate } from "react-router-dom";
+import { useContext, useState } from "react";
 
-const pages = ["Recipes", "Shopping", "Meals"];
-const settings = ["Profile", "Account", "Dashboard", "Logout"];
+import { AuthContext } from "../../contexts/auth-context";
+
+function extractEmailPrefix(email: string) {
+  return email.substring(0, email.indexOf("@"));
+}
 
 function Header() {
-  const [anchorElNav, setAnchorElNav] = React.useState<null | HTMLElement>(
-    null
-  );
-  const [anchorElUser, setAnchorElUser] = React.useState<null | HTMLElement>(
-    null
-  );
+  const navigate = useNavigate();
+  const auth = useContext(AuthContext);
+  const [anchorElNav, setAnchorElNav] = useState<null | HTMLElement>(null);
+  const [anchorElUser, setAnchorElUser] = useState<null | HTMLElement>(null);
+
+  const pages = auth.isLoggedIn
+    ? ["recipes", "shopping", "meals", "contribute"]
+    : ["recipes", "shopping", "meals"];
+  const settings = auth.isLoggedIn
+    ? ["Profile", "Account", "Dashboard", "Logout"]
+    : ["Login"];
 
   const handleOpenNavMenu = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorElNav(event.currentTarget);
@@ -39,6 +49,10 @@ function Header() {
     setAnchorElUser(null);
   };
 
+  // const redirect = (page: string) => {
+  //   navigate(`${page}`);
+  // };
+
   return (
     <AppBar position="static" sx={{ background: "#EB5A3C", height: "70px" }}>
       <Container maxWidth="xl">
@@ -48,7 +62,7 @@ function Header() {
             variant="h6"
             noWrap
             component="a"
-            href="#app-bar-with-responsive-menu"
+            href="/"
             sx={{
               mr: 2,
               display: { xs: "none", md: "flex" },
@@ -90,7 +104,13 @@ function Header() {
               sx={{ display: { xs: "block", md: "none" } }}
             >
               {pages.map((page) => (
-                <MenuItem key={page} onClick={handleCloseNavMenu}>
+                <MenuItem
+                  key={page}
+                  onClick={() => {
+                    handleCloseNavMenu();
+                    navigate(page);
+                  }}
+                >
                   <Typography sx={{ textAlign: "center" }}>{page}</Typography>
                 </MenuItem>
               ))}
@@ -119,7 +139,10 @@ function Header() {
             {pages.map((page) => (
               <Button
                 key={page}
-                onClick={handleCloseNavMenu}
+                onClick={() => {
+                  handleCloseNavMenu();
+                  navigate(page);
+                }}
                 sx={{ my: 2, color: "white", display: "block" }}
               >
                 {page}
@@ -129,7 +152,12 @@ function Header() {
           <Box sx={{ flexGrow: 0 }}>
             <Tooltip title="Open settings">
               <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
-                <Avatar alt="Remy Sharp" src="/static/images/avatar/2.jpg" />
+                <Avatar
+                  alt={
+                    auth.isLoggedIn ? extractEmailPrefix(auth.userEmail) : ""
+                  }
+                  src="/static/images/avatar/2.jpg"
+                />
               </IconButton>
             </Tooltip>
             <Menu
@@ -149,7 +177,20 @@ function Header() {
               onClose={handleCloseUserMenu}
             >
               {settings.map((setting) => (
-                <MenuItem key={setting} onClick={handleCloseUserMenu}>
+                <MenuItem
+                  key={setting}
+                  onClick={() => {
+                    if (setting === "Logout") {
+                      handleCloseUserMenu();
+                      auth.logout();
+                    } else if (setting === "Login") {
+                      handleCloseUserMenu();
+                      navigate("login");
+                    } else {
+                      handleCloseUserMenu();
+                    }
+                  }}
+                >
                   <Typography sx={{ textAlign: "center" }}>
                     {setting}
                   </Typography>
