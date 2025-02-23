@@ -101,15 +101,7 @@ jobs:
         uses: github/codeql-action/analyze@v3
         with:
           category: "/language:java"
-
-      - name: Merge SARIF Results
-        run: |
-          codeql github merge-results \
-            --output /home/runner/work/_temp/combined-sarif/combined.sarif \
-            --sarif /home/runner/work/rmmps/results/java.sarif \
-            --sarif /home/runner/work/rmmps/results/javascript.sarif \
-            --sarif-merge-runs-from-equal-category
-
+          output: sarif
 
   dast_scan:
     name: Dynamic Application Security Testing (DAST)
