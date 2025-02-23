@@ -62,15 +62,6 @@ function App() {
         throw new Error("User is not logged in!");
       }
 
-      // const responseData = await sendRequest(
-      //   `${process.env.REACT_APP_BACKEND_URL}/auth/logout`,
-      //   "POST",
-      //   null,
-      //   {
-      //     Authorization: `Bearer ${accessToken}`,
-      //   }
-      // );
-
       /* Update states and local storage */
       setAccessToken("");
       setRefreshToken("");
