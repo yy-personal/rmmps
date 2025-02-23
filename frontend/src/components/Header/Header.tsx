@@ -17,6 +17,10 @@ import { useContext, useState } from "react";
 
 import { AuthContext } from "../../contexts/auth-context";
 
+function extractEmailPrefix(email: string) {
+  return email.substring(0, email.indexOf("@"));
+}
+
 function Header() {
   const navigate = useNavigate();
   const auth = useContext(AuthContext);
@@ -148,8 +152,12 @@ function Header() {
           <Box sx={{ flexGrow: 0 }}>
             <Tooltip title="Open settings">
               <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
-                {/*TODO: change alt to username instead of hard-coding*/}
-                <Avatar alt="Muqaffa Sharp" src="/static/images/avatar/2.jpg" />
+                <Avatar
+                  alt={
+                    auth.isLoggedIn ? extractEmailPrefix(auth.userEmail) : ""
+                  }
+                  src="/static/images/avatar/2.jpg"
+                />
               </IconButton>
             </Tooltip>
             <Menu
