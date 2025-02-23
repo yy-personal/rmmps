@@ -104,7 +104,7 @@ jobs:
 
       - name: Merge SARIF Results
         run: |
-          /opt/hostedtoolcache/CodeQL/*/x64/codeql/codeql github merge-results \
+          codeql github merge-results \
             --output /home/runner/work/_temp/combined-sarif/combined.sarif \
             --sarif /home/runner/work/rmmps/results/java.sarif \
             --sarif /home/runner/work/rmmps/results/javascript.sarif \
