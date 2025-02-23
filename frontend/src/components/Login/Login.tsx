@@ -11,15 +11,21 @@ import {
   Checkbox,
   FormControlLabel,
   TextField,
+  Link,
 } from "@mui/material";
-import { Navigate, Link } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 
 import { AuthContext } from "../../contexts/auth-context";
 import { useHttpClient } from "../../hooks/http-hook";
 
-export default function Login() {
+interface LoginProps {
+  isLogin: boolean;
+}
+
+export default function Login(props: LoginProps) {
   const navigate = useNavigate();
   const { sendRequest, statusCode, serverError } = useHttpClient();
+  const { isLogin } = props;
   const auth = React.useContext(AuthContext);
   const [loginFormState, setLoginFormState] = React.useState({
     email: "",
@@ -44,7 +50,9 @@ export default function Login() {
 
     try {
       const responseData = await sendRequest(
-        `${process.env.REACT_APP_BACKEND_URL}/auth/login`,
+        `${process.env.REACT_APP_BACKEND_URL}/auth/${
+          isLogin ? "login" : "register"
+        }`,
         "POST",
         JSON.stringify({
           email: loginFormState.email,
@@ -54,12 +62,6 @@ export default function Login() {
           "Content-Type": "application/json",
         }
       );
-
-      // const responseData = await response.json();
-
-      // if (!response.ok) {
-      //   throw new Error(responseData.message || "unknown");
-      // }
 
       console.log(`act: ${responseData.accessToken}`);
 
@@ -82,23 +84,12 @@ export default function Login() {
       maxWidth="sm"
       sx={{
         height: "calc(100vh - 70px)",
-        // border: "1px solid grey",
         display: "flex",
         alignItems: "center",
       }}
     >
       <Card>
-        <Stack
-          alignItems="center"
-          py={6}
-          px={4}
-          display={"flex"}
-          sx={
-            {
-              // border: "2px solid red",
-            }
-          }
-        >
+        <Stack alignItems="center" py={6} px={4} display={"flex"}>
           <Typography
             component="h1"
             variant="h5"
@@ -107,11 +98,13 @@ export default function Login() {
               fontWeight: "bold",
             }}
           >
-            Welcome back!
+            {isLogin ? "Welcome back!" : "Join our community!"}
           </Typography>
 
           <Typography component="p">
-            Ready for another productive session? Let's dive in.
+            {isLogin
+              ? "The community has missed you!"
+              : "We can't wait for your contributions!"}
           </Typography>
           <Box
             component="form"
@@ -158,13 +151,13 @@ export default function Login() {
                 ":hover": { backgroundColor: "#C14600" },
               }}
             >
-              Sign In
+              {isLogin ? "Sign In" : "Register"}
             </Button>
             <Grid2 container>
               {/* <Grid2 item xs> */}
               <Container>
                 <Link
-                  to="/forgot-password"
+                  href="/forgot-password"
                   style={{ textDecoration: "none", color: "#EB5B00" }}
                 >
                   Forgot password?
@@ -173,10 +166,12 @@ export default function Login() {
               {/* <Grid2 item> */}
               <Container>
                 <Link
-                  to="/register"
+                  href={isLogin ? "/register" : "/login"}
                   style={{ textDecoration: "none", color: "#EB5B00" }}
                 >
-                  Don't have an account? Sign Up
+                  {isLogin
+                    ? "Don't have an account? Sign Up"
+                    : "Already have an account? Sign In"}
                 </Link>
               </Container>
             </Grid2>

@@ -18,7 +18,8 @@ root.render(
           <Route path="/" element={<RecipeList />} />
           <Route path="/recipes" element={<RecipeList />} />
           <Route path="/contribute" element={<RecipeForm />} />
-          <Route path="/login" element={<Login />} />
+          <Route path="/login" element={<Login isLogin />} />
+          <Route path="/register" element={<Login isLogin={false} />} />
           {/* <Route path="*" element={<PageNotFound />} /> */}
         </Route>
       </Routes>
