@@ -51,7 +51,27 @@
 			<version>4.0.0</version>
 		</dependency>
 
-<!--		&lt;!&ndash; Hibernate (Optional, included in JPA Starter) &ndash;&gt;-->
+		<!-- JWT Dependency -->
+		<dependency>
+			<groupId>io.jsonwebtoken</groupId>
+			<artifactId>jjwt-api</artifactId>
+			<version>0.11.5</version>
+		</dependency>
+		<dependency>
+			<groupId>io.jsonwebtoken</groupId>
+			<artifactId>jjwt-impl</artifactId>
+			<version>0.11.5</version>
+			<scope>runtime</scope>
+		</dependency>
+		<dependency>
+			<groupId>io.jsonwebtoken</groupId>
+			<artifactId>jjwt-jackson</artifactId>
+			<version>0.11.5</version>
+			<scope>runtime</scope>
+		</dependency>
+
+
+		<!--		&lt;!&ndash; Hibernate (Optional, included in JPA Starter) &ndash;&gt;-->
 <!--		<dependency>-->
 <!--			<groupId>org.hibernate</groupId>-->
 <!--			<artifactId>hibernate-core</artifactId>-->

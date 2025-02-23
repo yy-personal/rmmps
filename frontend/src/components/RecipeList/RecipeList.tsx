@@ -28,17 +28,13 @@ function RecipeList() {
   useEffect(() => {
     const fetchRecipes = async () => {
       try {
-        const response = await sendRequest(
+        const responseData = await sendRequest(
           `${process.env.REACT_APP_BACKEND_URL}/recipes`
         );
 
-        const responseData = await response.json();
-
-        if (response.ok) {
-          setRecipes(responseData);
-        }
+        setRecipes(responseData);
       } catch (err) {
-        console.log(err);
+        console.log(err.message);
       }
     };
     fetchRecipes();

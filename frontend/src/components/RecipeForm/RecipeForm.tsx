@@ -1,24 +1,25 @@
-import { useState } from "react";
+import { useContext, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import {
-  Button,
-  Card,
-  CardActions,
-  CardContent,
-  FormControl,
-  InputLabel,
-  MenuItem,
-  Select,
-  SelectChangeEvent,
-} from "@mui/material";
 import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Card from "@mui/material/Card";
+import CardActions from "@mui/material/CardActions";
+import CardContent from "@mui/material/CardContent";
+import FormControl from "@mui/material/FormControl";
+import InputLabel from "@mui/material/InputLabel";
+import MenuItem from "@mui/material/MenuItem";
+import Select from "@mui/material/Select";
+import { SelectChangeEvent } from "@mui/material/Select";
+
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 
+import { AuthContext } from "../../contexts/auth-context";
 import { useHttpClient } from "hooks/http-hook";
 
 function RecipeForm() {
+  const auth = useContext(AuthContext);
   const navigate = useNavigate();
   const [recipeFormState, setRecipeFormState] = useState({
     title: "",
@@ -29,9 +30,8 @@ function RecipeForm() {
     servings: "",
     steps: "",
   });
-  const [errorMessage, setErrorMessage] = useState("");
 
-  const { isLoading, sendRequest } = useHttpClient();
+  const { isLoading, sendRequest, statusCode, serverError } = useHttpClient();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type } = e.target;
@@ -54,7 +54,7 @@ function RecipeForm() {
     console.log("Recipe Submitted:", recipeFormState);
 
     try {
-      const response = await sendRequest(
+      const responseData = await sendRequest(
         `${process.env.REACT_APP_BACKEND_URL}/recipes`,
         "POST",
         JSON.stringify({
@@ -62,7 +62,7 @@ function RecipeForm() {
           // description: recipeFormState.description,
           user: {
             // TODO: use current authenticated user instead of hard-coding
-            userId: 1,
+            userId: 3,
           },
           difficultyLevel: recipeFormState.difficultyLevel,
           preparationTime: recipeFormState.preparationTime,
@@ -72,21 +72,21 @@ function RecipeForm() {
         }),
         {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${auth.accessToken}`,
         }
       );
 
-      const responseData = await response.json();
-
-      if (!response.ok) {
-        setErrorMessage(responseData.message || "unknown error message");
-      } else {
-        alert("successfully created recipe");
-        navigate("/");
-      }
-    } catch (err: any) {
-      setErrorMessage(err.message);
+      alert("successfully created recipe");
+      navigate("/");
+    } catch (err) {
+      console.log(`Status code: ${statusCode}`);
+      console.log(serverError);
     }
   };
+  if (!auth.isLoggedIn) {
+    return <Box>Unauthorized Access. Please login.</Box>;
+  }
+
   return (
     <Box
       sx={{
