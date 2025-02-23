@@ -38,7 +38,7 @@ public class AuthController {
     public ResponseEntity<?> registerUser(@RequestBody User newUser) {
         // Check if email is already taken
         if (userService.findByEmail(newUser.getEmail()).isPresent()) {
-            return ResponseEntity.badRequest().body("Error: Email is already in use!");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "Email is already in use!"));
         }
 
         // Hash password with BCrypt
@@ -48,7 +48,10 @@ public class AuthController {
         newUser.setPasswordHash(hashedPassword);
         userService.createUser(newUser);
 
-        return ResponseEntity.ok("User registered successfully!");
+        UserDetails userDetails = userDetailsService.loadUserByUsername(newUser.getEmail());
+        String accessToken = jwtUtil.generateAccessToken(userDetails.getUsername());
+        String refreshToken = jwtUtil.generateRefreshToken(userDetails.getUsername());
+        return ResponseEntity.ok(Map.of("accessToken", accessToken, "refreshToken", refreshToken));
     }
 
     @PostMapping("/login")
