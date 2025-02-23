@@ -49,9 +49,9 @@ function Header() {
     setAnchorElUser(null);
   };
 
-  const redirect = (page: string) => {
-    navigate(`${page}`);
-  };
+  // const redirect = (page: string) => {
+  //   navigate(`${page}`);
+  // };
 
   return (
     <AppBar position="static" sx={{ background: "#EB5A3C", height: "70px" }}>
@@ -108,7 +108,7 @@ function Header() {
                   key={page}
                   onClick={() => {
                     handleCloseNavMenu();
-                    redirect(page);
+                    navigate(page);
                   }}
                 >
                   <Typography sx={{ textAlign: "center" }}>{page}</Typography>
@@ -141,7 +141,7 @@ function Header() {
                 key={page}
                 onClick={() => {
                   handleCloseNavMenu();
-                  redirect(page);
+                  navigate(page);
                 }}
                 sx={{ my: 2, color: "white", display: "block" }}
               >
@@ -181,10 +181,11 @@ function Header() {
                   key={setting}
                   onClick={() => {
                     if (setting === "Logout") {
+                      handleCloseUserMenu();
                       auth.logout();
-                      navigate("/recipes");
                     } else if (setting === "Login") {
-                      redirect("login");
+                      handleCloseUserMenu();
+                      navigate("login");
                     } else {
                       handleCloseUserMenu();
                     }

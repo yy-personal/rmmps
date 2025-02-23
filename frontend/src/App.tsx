@@ -1,7 +1,7 @@
 import "./App.css";
 import Box from "@mui/material/Box";
 import Header from "components/Header/Header";
-import { Outlet } from "react-router-dom";
+import { Outlet, useNavigate } from "react-router-dom";
 
 import { AuthContext } from "./contexts/auth-context";
 import { useCallback, useEffect, useState } from "react";
@@ -12,6 +12,7 @@ const defaultTokenExpiry = 1000 * 890; // 15 minutes - 10 seconds buffer
 let refreshTimer: NodeJS.Timeout;
 
 function App() {
+  const navigate = useNavigate();
   const { sendRequest, serverError, statusCode } = useHttpClient();
   /* Auth-related states */
   const [accessToken, setAccessToken] = useState("");
@@ -77,7 +78,7 @@ function App() {
       // setUserName("");
       setAccessTokenExpiry(undefined);
       localStorage.removeItem(userDataIdentifier);
-      window.location.reload();
+      navigate("/");
     } catch (err) {
       console.log(err.message || "unknown error");
     }
