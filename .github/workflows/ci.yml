@@ -125,7 +125,7 @@ jobs:
           ./mvnw spring-boot:run &
           sleep 20  
 
-      - name: Run OWASP ZAP Scan
-        uses: zaproxy/action-full-scan@v0.4.0
+      - name: ZAP Scan
+        uses: zaproxy/action-full-scan@v0.12.0
         with:
           target: 'http://localhost:8080'
