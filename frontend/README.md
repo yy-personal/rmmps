@@ -89,7 +89,7 @@ function HttpRequestTemplate() {
       }
     };
     createDummyData();
-  }, [setDummyData, sendRequest]);
+  }, [setDummyData, sendRequest, serverError, statusCode]);
 
   // Do something while the HTTP request is being handled
   if (isLoading) {
