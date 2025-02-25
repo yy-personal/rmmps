@@ -44,7 +44,7 @@ For convenience, the custom React hook 'useHttpClient' is defined in hooks/http-
 import Box from "@mui/material/Box";
 import { useEffect, useState } from "react";
 
-// remember to import the custom hook
+// Remember to import the custom hook
 import { useHttpClient } from "hooks/http-hook";
 
 interface DummyDataType {
@@ -54,18 +54,33 @@ interface DummyDataType {
 }
 
 function HttpRequestTemplate() {
+  // Only sendRequest is required to send requests, the other 3 are optional
   const { isLoading, sendRequest, serverError, statusCode } = useHttpClient();
   const [dummyData, setDummyData] = useState<DummyDataType>();
 
   useEffect(() => {
-    const fetchDummyData = async () => {
+    // Recommended to use async-await paradigm. First, wrap the sendRequest call in an async function.
+    const createDummyData = async () => {
       try {
+        // Send the request by providing the URL, request type, request body, and headers
+        // Only the URL is required, the other 3 are optional
+        // Make sure to wrap the request within a try block
         const responseData = await sendRequest(
-          `${process.env.REACT_APP_BACKEND_URL}/dummy-route`
+          `${process.env.REACT_APP_BACKEND_URL}/dummy-route`,
+          "POST",
+          JSON.stringify({
+            name: "dummy name",
+            age: 25,
+            isMarried: true,
+          }),
+          {
+            "Content-Type": "application/json",
+          }
         );
 
         setDummyData(responseData);
       } catch (err) {
+        // In case of an error, you may use serverError and/or statusCode for logging or displaying to users
         console.log(
           serverError ||
             err.message ||
@@ -73,7 +88,7 @@ function HttpRequestTemplate() {
         );
       }
     };
-    fetchDummyData();
+    createDummyData();
   }, [setDummyData, sendRequest]);
 
   // Do something while the HTTP request is being handled
@@ -98,16 +113,18 @@ export default HttpRequestTemplate;
 
 ### Responsiveness (MaterialUI Version)
 
-Ensuring a responsive design is crucial for a seamless user experience across different screen sizes. Material UI provides built-in breakpoints, the ==sx== prop, and the ==useMediaQuery== hook to make components adapt dynamically.
+Ensuring a responsive design is crucial for a seamless user experience across different screen sizes. Material UI provides built-in breakpoints, the _sx_ prop, and the _useMediaQuery_ hook to make components adapt dynamically.
 
-### Using the sx Prop with Breakpoints
+#### Using the sx Prop with Breakpoints
 
-Material UI allows you to specify styles for different screen sizes using its breakpoints system (xs, sm, md, lg, xl).
+Material UI allows you to specify styles for different screen sizes using its breakpoints system _(xs, sm, md, lg, xl)_.
 
 **Example: Responsive Grid Layout**
 
 ```tsx
-import { Box, Typography, Button } from "@mui/material";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Typography from "@mui/material/Typography";
 
 const ResponsiveComponent = () => {
   return (
