@@ -73,7 +73,7 @@ function App() {
     } catch (err) {
       console.log(err.message || "unknown error");
     }
-  }, [accessToken, sendRequest, navigate]);
+  }, [accessToken, navigate]);
 
   const authRefresh = useCallback(
     async (_refreshToken: string) => {
