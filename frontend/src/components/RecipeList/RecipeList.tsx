@@ -22,7 +22,7 @@ interface RecipeType {
 }
 
 function RecipeList() {
-  const { isLoading, sendRequest } = useHttpClient();
+  const { sendRequest } = useHttpClient();
   const [recipes, setRecipes] = useState<RecipeType[]>();
 
   useEffect(() => {

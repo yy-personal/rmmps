@@ -73,7 +73,7 @@ function App() {
     } catch (err) {
       console.log(err.message || "unknown error");
     }
-  }, [accessToken, sendRequest]);
+  }, [accessToken, navigate]);
 
   const authRefresh = useCallback(
     async (_refreshToken: string) => {
@@ -122,7 +122,7 @@ function App() {
         console.log(serverError);
       }
     },
-    [sendRequest, logout]
+    [sendRequest, logout, serverError, statusCode]
   );
 
   useEffect(() => {
