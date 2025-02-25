@@ -95,3 +95,47 @@ function HttpRequestTemplate() {
 
 export default HttpRequestTemplate;
 ```
+
+### Responsiveness (MaterialUI Version)
+
+Ensuring a responsive design is crucial for a seamless user experience across different screen sizes. Material UI provides built-in breakpoints, the ==sx== prop, and the ==useMediaQuery== hook to make components adapt dynamically.
+
+### Using the sx Prop with Breakpoints
+
+Material UI allows you to specify styles for different screen sizes using its breakpoints system (xs, sm, md, lg, xl).
+
+**Example: Responsive Grid Layout**
+
+```tsx
+import { Box, Typography, Button } from "@mui/material";
+
+const ResponsiveComponent = () => {
+  return (
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: { xs: "column", md: "row" }, // Stack on small screens, row on medium+
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 2,
+        p: 3,
+      }}
+    >
+      <Typography
+        variant="h4"
+        sx={{ fontSize: { xs: "1.5rem", md: "2rem" } }} // Adjust font size for screens
+      >
+        Responsive Design
+      </Typography>
+      <Button
+        variant="contained"
+        sx={{ width: { xs: "100%", sm: "auto" } }} // Full width on small screens
+      >
+        Click Me
+      </Button>
+    </Box>
+  );
+};
+
+export default ResponsiveComponent;
+```
