@@ -38,7 +38,7 @@ public class AuthController {
     public ResponseEntity<?> registerUser(@RequestBody User newUser) {
         // Check if email is already taken
         if (userService.findByEmail(newUser.getEmail()).isPresent()) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "Email is already in use!"));
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", "Email is already in use!"));
         }
 
         // Hash password with BCrypt
@@ -65,7 +65,7 @@ public class AuthController {
             String refreshToken = jwtUtil.generateRefreshToken(userDetails.getUsername());
             return ResponseEntity.ok(Map.of("accessToken", accessToken, "refreshToken", refreshToken));
         } catch (BadCredentialsException e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Invalid credentials"));
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Invalid credentials"));
         }
     }
 

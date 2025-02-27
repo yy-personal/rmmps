@@ -69,7 +69,7 @@ function App() {
       // setUserName("");
       setAccessTokenExpiry(undefined);
       localStorage.removeItem(userDataIdentifier);
-      navigate("/");
+      navigate("/login");
     } catch (err) {
       console.log(err.message || "unknown error");
     }
