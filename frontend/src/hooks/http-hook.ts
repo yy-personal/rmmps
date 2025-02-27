@@ -15,6 +15,7 @@ export const useHttpClient = () => {
     ) => {
       setIsLoading(true);
       setStatusCode(undefined);
+      setServerError("");
       const httpAbortCtrl = new AbortController();
       activeHttpRequests.current.push(httpAbortCtrl);
 
