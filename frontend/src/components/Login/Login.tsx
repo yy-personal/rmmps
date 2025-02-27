@@ -29,11 +29,16 @@ export default function Login(props: LoginProps) {
     email: "",
     password: "",
   });
+  const [rememberUser, setRememberUser] = React.useState(false);
 
   // Redirect if already logged in.
   if (auth.isLoggedIn) {
     return <Navigate to={"/"} replace />;
   }
+
+  const handleCheckboxChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setRememberUser(event.target.checked);
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -64,7 +69,7 @@ export default function Login(props: LoginProps) {
       auth.login(
         loginFormState.email,
         responseData.accessToken,
-        responseData.refreshToken,
+        rememberUser ? responseData.refreshToken : "",
         null
       );
       navigate("/");
@@ -139,7 +144,13 @@ export default function Login(props: LoginProps) {
               }
             />
             <FormControlLabel
-              control={<Checkbox value="remember" color="primary" />}
+              control={
+                <Checkbox
+                  checked={rememberUser}
+                  onChange={handleCheckboxChange}
+                  color="primary"
+                />
+              }
               label="Remember me"
             />
             <Button
