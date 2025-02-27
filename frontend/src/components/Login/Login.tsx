@@ -61,8 +61,6 @@ export default function Login(props: LoginProps) {
         }
       );
 
-      console.log(`act: ${responseData.accessToken}`);
-
       auth.login(
         loginFormState.email,
         responseData.accessToken,
@@ -133,6 +131,12 @@ export default function Login(props: LoginProps) {
               autoComplete="current-password"
               value={loginFormState.password}
               onChange={handleChange}
+              error={!!serverError}
+              helperText={
+                statusCode === 401
+                  ? "Invalid username or password"
+                  : serverError
+              }
             />
             <FormControlLabel
               control={<Checkbox value="remember" color="primary" />}
