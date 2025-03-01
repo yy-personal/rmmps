@@ -4,6 +4,8 @@ import com.nus_iss.recipe_management.exception.RecipeNotFoundException;
 import com.nus_iss.recipe_management.model.Recipe;
 import com.nus_iss.recipe_management.model.User;
 import com.nus_iss.recipe_management.model.DifficultyLevel;
+import com.nus_iss.recipe_management.repository.MealPlanRecipeMappingRepository;
+import com.nus_iss.recipe_management.repository.MealPlanRepository;
 import com.nus_iss.recipe_management.repository.RecipeRepository;
 import com.nus_iss.recipe_management.service.impl.RecipeServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
@@ -12,6 +14,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -27,6 +34,18 @@ import static org.mockito.Mockito.*;
 class RecipeServiceTest {
 
     @Mock
+    private UserService userService;
+
+    @Mock
+    private Authentication authentication;
+
+    @Mock
+    private SecurityContext securityContext;
+
+    @Mock
+    private UserDetails userDetails;
+
+    @Mock
     private RecipeRepository recipeRepository;
 
     @InjectMocks
@@ -40,6 +59,8 @@ class RecipeServiceTest {
     void setUp() {
         // Create test user
         testUser = new User();
+        testUser.setUserId(1);
+
         // Set necessary user properties
 
         // Create test recipe
@@ -167,11 +188,22 @@ class RecipeServiceTest {
     }
 
     @Test
-    void deleteRecipe_ShouldDeleteSuccessfully() {
-        // Act
-        recipeService.deleteRecipe(1);
+    void deleteRecipe_ShouldThrowAccessDeniedException_WhenUserNotOwner() {
+        User anotherUser = new User();
+        anotherUser.setUserId(2);
+        testRecipe.setUser(anotherUser);
 
-        // Assert
-        verify(recipeRepository, times(1)).deleteById(1);
+        UserDetails userDetails = mock(UserDetails.class);
+        when(userDetails.getUsername()).thenReturn("test@example.com");
+        when(authentication.getPrincipal()).thenReturn(userDetails);
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+        SecurityContextHolder.setContext(securityContext);
+
+        User currentUser = new User();
+        currentUser.setUserId(1);
+        when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(currentUser));
+        when(recipeRepository.findById(1)).thenReturn(Optional.of(testRecipe));
+
+        assertThrows(AccessDeniedException.class, () -> recipeService.deleteRecipe(1));
     }
 }
