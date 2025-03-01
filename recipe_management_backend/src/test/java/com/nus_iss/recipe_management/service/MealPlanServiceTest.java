@@ -7,6 +7,7 @@ import com.nus_iss.recipe_management.exception.*;
 import com.nus_iss.recipe_management.model.*;
 import com.nus_iss.recipe_management.repository.*;
 import com.nus_iss.recipe_management.service.UserService;
+import com.nus_iss.recipe_management.service.impl.MealPlanServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -46,7 +47,7 @@ class MealPlanServiceTest {
     private UserDetails userDetails;
 
     @InjectMocks
-    private MealPlanService mealPlanService;
+    private MealPlanServiceImpl mealPlanService;
 
     private MealPlan mealPlan;
 
