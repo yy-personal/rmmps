@@ -491,6 +491,15 @@ function RecipeDetail({ recipeId, open, onClose }: RecipeDetailProps) {
 										rows={6}
 										fullWidth
 										placeholder="Enter step-by-step instructions"
+										error={
+											editFormState.steps?.trim() === ""
+										}
+										helperText={
+											editFormState.steps?.trim() === ""
+												? "Preparation steps cannot be empty"
+												: ""
+										}
+										required
 									/>
 								) : (
 									<Typography
