@@ -1,10 +1,17 @@
 package com.nus_iss.recipe_management.service.impl;
 
+import com.nus_iss.recipe_management.exception.MealPlanNotFoundException;
 import com.nus_iss.recipe_management.exception.RecipeNotFoundException;
 import com.nus_iss.recipe_management.model.*;
 import com.nus_iss.recipe_management.repository.*;
 import com.nus_iss.recipe_management.service.RecipeService;
+import com.nus_iss.recipe_management.service.UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import java.util.List;
 
@@ -12,6 +19,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class RecipeServiceImpl implements RecipeService {
     private final RecipeRepository recipeRepository;
+    private final UserService userService;
 
     @Override
     public Recipe createRecipe(Recipe recipe) {
@@ -46,6 +54,20 @@ public class RecipeServiceImpl implements RecipeService {
 
     @Override
     public void deleteRecipe(Integer id) {
+
+        Recipe recipe = recipeRepository.findById(id)
+                .orElseThrow(() -> new RecipeNotFoundException("Recipe not found"));
+
+        // 🔐 Get the currently authenticated user's ID
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = ((UserDetails) authentication.getPrincipal()).getUsername();
+        User user = userService.findByEmail(username).orElseThrow(() -> new AuthenticationCredentialsNotFoundException("Value not present"));;
+        Integer userId = user.getUserId();
+
+        // Check if the authenticated user owns the recipe
+        if (!recipe.getUser().getUserId().equals(userId)) {
+            throw new AccessDeniedException("You do not have permission to modify this recipe.");
+        }
         recipeRepository.deleteById(id);
     }
 }

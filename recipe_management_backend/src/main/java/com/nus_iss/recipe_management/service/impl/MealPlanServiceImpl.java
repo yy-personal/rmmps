@@ -113,6 +113,7 @@ public class MealPlanServiceImpl implements MealPlanService {
 
     @Override
     public void deleteMealPlanRecipeMapping(Integer mealPlanId, Integer recipeId) {
+
         MealPlan mealPlan = mealPlanRepository.findById(mealPlanId)
                 .orElseThrow(() -> new MealPlanNotFoundException("Meal Plan not found"));
 
