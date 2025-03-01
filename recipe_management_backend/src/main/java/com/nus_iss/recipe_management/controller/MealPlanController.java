@@ -3,7 +3,6 @@ package com.nus_iss.recipe_management.controller;
 import com.nus_iss.recipe_management.exception.MealPlanNotFoundException;
 import com.nus_iss.recipe_management.model.MealPlan;
 import com.nus_iss.recipe_management.model.MealPlanRecipeMapping;
-import com.nus_iss.recipe_management.model.MealPlanRecipeMappingId;
 import com.nus_iss.recipe_management.service.MealPlanService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -31,7 +30,7 @@ public class MealPlanController {
             @RequestParam Integer recipeId,
             @RequestParam Integer userId) {
 
-        MealPlanRecipeMapping createdMealPlanRecipeMapping = mealPlanService.addRecipeToMealPlan(mealPlanId, recipeId, userId);
+        MealPlanRecipeMapping createdMealPlanRecipeMapping = mealPlanService.addMealPlanRecipeMapping(mealPlanId, recipeId);
         return ResponseEntity.ok(createdMealPlanRecipeMapping);
     }
 
@@ -90,10 +89,9 @@ public class MealPlanController {
     @DeleteMapping
     public ResponseEntity<String> removeRecipeFromMealPlan(
             @RequestParam Integer mealPlanId,
-            @RequestParam Integer recipeId,
-            @RequestParam Integer userId) {
+            @RequestParam Integer recipeId) {
 
-        mealPlanService.deleteMealPlanRecipeMapping(mealPlanId, recipeId, userId);
+        mealPlanService.deleteMealPlanRecipeMapping(mealPlanId, recipeId);
         return ResponseEntity.ok("Recipe removed from meal plan successfully.");
     }
 }
