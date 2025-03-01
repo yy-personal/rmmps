@@ -7,24 +7,24 @@ import lombok.*;
 import java.util.HashSet;
 import java.util.Set;
 
-// Ingredients Entity
+// Dietary Restrictions Entity
 @Entity
-@Table(name = "Ingredients")
+@Table(name = "DietaryRestrictions")
 @Getter @Setter
 @NoArgsConstructor @AllArgsConstructor
-public class Ingredient {
+public class DietaryRestriction {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer ingredientId;
+    private Integer dietaryRestrictionId;
 
     @Column(nullable = false, unique = true)
     private String name;
 
-    @OneToMany(mappedBy = "ingredient", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Set<RecipeIngredientsMapping> recipes = new HashSet<>();
+    @OneToMany(mappedBy = "dietaryRestriction", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<RecipeDietaryRestrictionMapping> recipes = new HashSet<>();
 
     // To prevent recursive get in JSON response
     @JsonIgnore
-    public Set<RecipeIngredientsMapping> getRecipes() {
+    public Set<RecipeDietaryRestrictionMapping> getRecipes() {
         return recipes;
     }
 }

@@ -8,23 +8,23 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "RecipeCategoryMapping")
+@Table(name = "RecipeDietaryRestrictionMapping")
 @Getter @Setter
 @NoArgsConstructor @AllArgsConstructor
-public class RecipeCategoryMapping {
+public class RecipeDietaryRestrictionMapping {
 
     @EmbeddedId
-    private RecipeCategoryMappingId id;
+    private RecipeDietaryRestrictionMappingId id;
 
     @ManyToOne
-    @MapsId("recipeId")  // Maps to recipeId in RecipeCategoryMappingId
+    @MapsId("recipeId")  // Maps to the composite key's recipeId
     @JoinColumn(name = "recipe_id", nullable = false)
     private Recipe recipe;
 
     @ManyToOne
-    @MapsId("categoryId")  // Maps to categoryId in RecipeCategoryMappingId
-    @JoinColumn(name = "category_id", nullable = false)
-    private RecipeCategory category;
+    @MapsId("dietaryRestrictionId")  // Maps to the composite key's dietaryRestrictionId
+    @JoinColumn(name = "dietary_restriction_id", nullable = false)
+    private DietaryRestriction dietaryRestriction;
 
     private LocalDateTime dateAdded;
 
