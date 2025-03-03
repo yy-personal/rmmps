@@ -9,21 +9,21 @@ import java.util.Objects;
 @Embeddable
 @Getter @Setter
 @NoArgsConstructor @AllArgsConstructor
-public class RecipeIngredientsId implements Serializable {
-    private Long recipeId;
-    private Long ingredientId;
+public class MealPlanRecipeMappingId implements Serializable {
+    private Integer mealPlanId;
+    private Integer recipeId;
 
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        RecipeIngredientsId that = (RecipeIngredientsId) o;
-        return Objects.equals(recipeId, that.recipeId) &&
-                Objects.equals(ingredientId, that.ingredientId);
+        MealPlanRecipeMappingId that = (MealPlanRecipeMappingId) o;
+        return Objects.equals(mealPlanId, that.mealPlanId) &&
+                Objects.equals(recipeId, that.recipeId);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(recipeId, ingredientId);
+        return Objects.hash(mealPlanId, recipeId);
     }
 }
