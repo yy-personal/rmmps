@@ -1,11 +1,15 @@
 package com.nus_iss.recipe_management.controller;
 
 import com.nus_iss.recipe_management.exception.MealPlanNotFoundException;
+import com.nus_iss.recipe_management.exception.RecipeAlreadyInMealPlanException;
+import com.nus_iss.recipe_management.exception.RecipeNotFoundException;
 import com.nus_iss.recipe_management.model.MealPlan;
 import com.nus_iss.recipe_management.model.MealPlanRecipeMapping;
 import com.nus_iss.recipe_management.service.MealPlanService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -19,19 +23,38 @@ public class MealPlanController {
     // Create a new meal plan
     @PostMapping("/create")
     public ResponseEntity<MealPlan> createMealPlan(@RequestBody MealPlan mealPlan) {
-        MealPlan createdMealPlan = mealPlanService.createMealPlan(mealPlan);
-        return ResponseEntity.ok(createdMealPlan);
+        ResponseEntity<MealPlan> response;
+        try {
+            MealPlan createdMealPlan = mealPlanService.createMealPlan(mealPlan);
+            response =  ResponseEntity.ok(createdMealPlan);
+        } catch (AccessDeniedException ex) {
+            response = ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        } catch (Exception ex) {
+            response = ResponseEntity.internalServerError().build();
+        }
+        return response;
     }
 
     // Add a recipe to a meal plan
     @PostMapping("/add-recipe")
     public ResponseEntity<MealPlanRecipeMapping> addRecipeToMealPlan(
             @RequestParam Integer mealPlanId,
-            @RequestParam Integer recipeId,
-            @RequestParam Integer userId) {
+            @RequestParam Integer recipeId) {
 
-        MealPlanRecipeMapping createdMealPlanRecipeMapping = mealPlanService.addMealPlanRecipeMapping(mealPlanId, recipeId);
-        return ResponseEntity.ok(createdMealPlanRecipeMapping);
+        ResponseEntity<MealPlanRecipeMapping> response;
+        try {
+            MealPlanRecipeMapping createdMealPlanRecipeMapping = mealPlanService.addMealPlanRecipeMapping(mealPlanId, recipeId);
+            response = ResponseEntity.ok(createdMealPlanRecipeMapping);
+        } catch (MealPlanNotFoundException | RecipeNotFoundException ex) {
+            response = ResponseEntity.notFound().build();
+        } catch (RecipeAlreadyInMealPlanException ex) {
+            response = ResponseEntity.status(HttpStatus.CONFLICT).build();
+        } catch (AccessDeniedException ex) {
+            response = ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        } catch (Exception ex) {
+            response = ResponseEntity.internalServerError().build();
+        }
+        return response;
     }
 
     // Get all meal plans
@@ -65,6 +88,8 @@ public class MealPlanController {
             response = ResponseEntity.ok(updatedMealPlan);
         } catch (MealPlanNotFoundException ex) {
             response = ResponseEntity.notFound().build();
+        } catch (AccessDeniedException ex) {
+            response = ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         } catch (Exception ex) {
             response = ResponseEntity.internalServerError().build();
         }
@@ -73,17 +98,21 @@ public class MealPlanController {
 
     // Delete a meal plan by ID
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteMealPlan(@PathVariable Integer id) {
-        mealPlanService.deleteMealPlan(id);
-        return ResponseEntity.noContent().build();
-    }
+    public ResponseEntity<MealPlan> deleteMealPlan(@PathVariable Integer id) {
+        ResponseEntity<MealPlan> response;
+        try {
+            mealPlanService.deleteMealPlan(id);
+            response = ResponseEntity.noContent().build();
+        } catch (MealPlanNotFoundException ex) {
+            response = ResponseEntity.notFound().build();
+        } catch (AccessDeniedException ex) {
+            response = ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        } catch (Exception ex) {
+            response = ResponseEntity.internalServerError().build();
+        }
 
-//    @DeleteMapping("/{mealPlanId}/recipes/{recipeId}")
-//    public ResponseEntity<String> removeRecipeFromMealPlan(@PathVariable Integer mealPlanId,
-//                                                           @PathVariable Integer recipeId) {
-//
-//        return ResponseEntity.ok("Recipe removed from Meal Plan");
-//    }
+        return response;
+    }
 
     // Remove a recipe from a meal plan
     @DeleteMapping
@@ -91,7 +120,19 @@ public class MealPlanController {
             @RequestParam Integer mealPlanId,
             @RequestParam Integer recipeId) {
 
-        mealPlanService.deleteMealPlanRecipeMapping(mealPlanId, recipeId);
-        return ResponseEntity.ok("Recipe removed from meal plan successfully.");
+        ResponseEntity<String> response;
+        try {
+            mealPlanService.deleteMealPlanRecipeMapping(mealPlanId, recipeId);
+            response = ResponseEntity.ok("Recipe removed from meal plan successfully.");
+        } catch (MealPlanNotFoundException | RecipeNotFoundException ex) {
+            response = ResponseEntity.notFound().build();
+        } catch (RecipeAlreadyInMealPlanException ex) {
+            response = ResponseEntity.status(HttpStatus.CONFLICT).build();
+        } catch (AccessDeniedException ex) {
+            response = ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        } catch (Exception ex) {
+            response = ResponseEntity.internalServerError().build();
+        }
+        return response;
     }
 }
