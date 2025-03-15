@@ -50,14 +50,27 @@ class MealPlanServiceTest {
     private MealPlanServiceImpl mealPlanService;
 
     private MealPlan mealPlan;
+    private Recipe recipe;
+    private User user;
+    private User otherUser;
 
     @BeforeEach
     void setUp() {
         mealPlan = new MealPlan();
         mealPlan.setMealPlanId(1);
-        User user = new User();
+        user = new User();
         user.setUserId(1);
         mealPlan.setUser(user);
+        recipe = new Recipe();
+        recipe.setRecipeId(1);
+        otherUser = new User();
+        otherUser.setUserId(2);
+
+        lenient(). when(securityContext.getAuthentication()).thenReturn(authentication);
+        lenient().when(authentication.getPrincipal()).thenReturn(userDetails);
+        lenient().when(userDetails.getUsername()).thenReturn("user@example.com");
+        SecurityContextHolder.setContext(securityContext);
+        lenient().when(userService.findByEmail("user@example.com")).thenReturn(Optional.of(user));
     }
 
     @Test
@@ -68,39 +81,94 @@ class MealPlanServiceTest {
     }
 
     @Test
-    void getAllMealPlans_ShouldReturnListOfMealPlans() {
-        List<MealPlan> mealPlans = List.of(mealPlan);
-        when(mealPlanRepository.findAll()).thenReturn(mealPlans);
-        assertEquals(mealPlans, mealPlanService.getAllMealPlans());
-    }
+    void addMealPlanRecipeMapping_ShouldReturnSavedMapping() {
+        MealPlanRecipeMappingId mappingId = new MealPlanRecipeMappingId(1, 1);
+        MealPlanRecipeMapping mapping = new MealPlanRecipeMapping();
+        mapping.setId(mappingId);
+        mapping.setMealPlan(mealPlan);
+        mapping.setRecipe(recipe);
 
-    @Test
-    void getMealPlanById_ShouldReturnMealPlan() {
         when(mealPlanRepository.findById(1)).thenReturn(Optional.of(mealPlan));
-        assertEquals(mealPlan, mealPlanService.getMealPlanById(1));
+        when(recipeRepository.findById(1)).thenReturn(Optional.of(recipe));
+        when(mealPlanRecipeMappingRepository.existsById(mappingId)).thenReturn(false);
+        when(mealPlanRecipeMappingRepository.save(any())).thenReturn(mapping);
+
+        MealPlanRecipeMapping result = mealPlanService.addMealPlanRecipeMapping(1, 1);
+        assertEquals(mapping, result);
     }
 
     @Test
-    void getMealPlanById_ShouldThrowMealPlanNotFoundException() {
+    void deleteMealPlanRecipeMapping_ShouldCallDelete() {
+        MealPlanRecipeMappingId mappingId = new MealPlanRecipeMappingId(1, 1);
+        MealPlanRecipeMapping mapping = new MealPlanRecipeMapping();
+        mapping.setId(mappingId);
+        mapping.setMealPlan(mealPlan);
+        mapping.setRecipe(recipe);
+
+        when(mealPlanRepository.findById(1)).thenReturn(Optional.of(mealPlan));
+        when(mealPlanRecipeMappingRepository.findById(mappingId)).thenReturn(Optional.of(mapping));
+
+        mealPlanService.deleteMealPlanRecipeMapping(1, 1);
+        verify(mealPlanRecipeMappingRepository, times(1)).delete(mapping);
+    }
+
+
+    // TEST EXCEPTIONS
+    @Test
+    void addMealPlanRecipeMapping_ShouldThrowRecipeAlreadyInMealPlanException() {
+        MealPlanRecipeMappingId mappingId = new MealPlanRecipeMappingId(1, 1);
+
+        when(mealPlanRepository.findById(1)).thenReturn(Optional.of(mealPlan));
+        when(recipeRepository.findById(1)).thenReturn(Optional.of(recipe));
+        when(mealPlanRecipeMappingRepository.existsById(mappingId)).thenReturn(true);
+
+        assertThrows(RecipeAlreadyInMealPlanException.class, () -> mealPlanService.addMealPlanRecipeMapping(1, 1));
+    }
+
+    @Test
+    void addMealPlanRecipeMapping_ShouldThrowMealPlanNotFoundException() {
         when(mealPlanRepository.findById(1)).thenReturn(Optional.empty());
-        assertThrows(MealPlanNotFoundException.class, () -> mealPlanService.getMealPlanById(1));
+        assertThrows(MealPlanNotFoundException.class, () -> mealPlanService.addMealPlanRecipeMapping(1, 1));
+    }
+
+    @Test
+    void addMealPlanRecipeMapping_ShouldThrowRecipeNotFoundException() {
+        when(mealPlanRepository.findById(1)).thenReturn(Optional.of(mealPlan));
+        when(recipeRepository.findById(1)).thenReturn(Optional.empty());
+        assertThrows(RecipeNotFoundException.class, () -> mealPlanService.addMealPlanRecipeMapping(1, 1));
+    }
+
+    @Test
+    void addMealPlanRecipeMapping_ShouldThrowAccessDeniedException() {
+        mealPlan.setUser(otherUser);
+        when(mealPlanRepository.findById(1)).thenReturn(Optional.of(mealPlan));
+        assertThrows(AccessDeniedException.class, () -> mealPlanService.addMealPlanRecipeMapping(1, 1));
+    }
+
+    @Test
+    void deleteMealPlanRecipeMapping_ShouldThrowAccessDeniedException() {
+        mealPlan.setUser(otherUser);
+        when(mealPlanRepository.findById(1)).thenReturn(Optional.of(mealPlan));
+        assertThrows(AccessDeniedException.class, () -> mealPlanService.deleteMealPlanRecipeMapping(1, 1));
+    }
+
+    @Test
+    void deleteMealPlanRecipeMapping_ShouldThrowMealPlanRecipeMappingNotFoundException() {
+        when(mealPlanRepository.findById(1)).thenReturn(Optional.of(mealPlan));
+        when(mealPlanRecipeMappingRepository.findById(any())).thenReturn(Optional.empty());
+        assertThrows(MealPlanRecipeMappingNotFoundException.class, () -> mealPlanService.deleteMealPlanRecipeMapping(1, 1));
     }
 
     @Test
     void updateMealPlan_ShouldThrowAccessDeniedException() {
+        mealPlan.setUser(otherUser);
         when(mealPlanRepository.findById(1)).thenReturn(Optional.of(mealPlan));
-        when(securityContext.getAuthentication()).thenReturn(authentication);
-        when(authentication.getPrincipal()).thenReturn(userDetails);
-        when(userDetails.getUsername()).thenReturn("user@example.com");
-        SecurityContextHolder.setContext(securityContext);
-        when(userService.findByEmail("user@example.com")).thenReturn(Optional.of(new User()));
-
         assertThrows(AccessDeniedException.class, () -> mealPlanService.updateMealPlan(1, mealPlan));
     }
 
     @Test
-    void deleteMealPlan_ShouldCallDeleteById() {
-        mealPlanService.deleteMealPlan(1);
-        verify(mealPlanRepository, times(1)).deleteById(1);
+    void updateMealPlan_ShouldThrowMealPlanNotFoundException() {
+        when(mealPlanRepository.findById(1)).thenReturn(Optional.empty());
+        assertThrows(MealPlanNotFoundException.class, () -> mealPlanService.updateMealPlan(1, mealPlan));
     }
 }
