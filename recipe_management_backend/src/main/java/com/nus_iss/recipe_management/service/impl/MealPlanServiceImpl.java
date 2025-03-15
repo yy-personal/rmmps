@@ -2,6 +2,7 @@ package com.nus_iss.recipe_management.service.impl;
 
 import com.nus_iss.recipe_management.exception.MealPlanNotFoundException;
 import com.nus_iss.recipe_management.exception.MealPlanRecipeMappingNotFoundException;
+import com.nus_iss.recipe_management.exception.RecipeAlreadyInMealPlanException;
 import com.nus_iss.recipe_management.exception.RecipeNotFoundException;
 import com.nus_iss.recipe_management.model.*;
 import com.nus_iss.recipe_management.repository.MealPlanRecipeMappingRepository;
@@ -31,6 +32,18 @@ public class MealPlanServiceImpl implements MealPlanService {
 
     @Override
     public MealPlan createMealPlan(MealPlan mealPlan) {
+
+        // 🔐 Get the currently authenticated user's ID
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = ((UserDetails) authentication.getPrincipal()).getUsername();
+        User user = userService.findByEmail(username).orElseThrow(() -> new AuthenticationCredentialsNotFoundException("Value not present"));;
+        Integer userId = user.getUserId();
+
+        // Check that the logged-in user is authorised to create meal plans under the submitted user id
+        if (!mealPlan.getUser().getUserId().equals(userId)) {
+            throw new AccessDeniedException("You do not have permission to create this meal plan using this user id.");
+        }
+
         return mealPlanRepository.save(mealPlan);
     }
 
@@ -68,9 +81,27 @@ public class MealPlanServiceImpl implements MealPlanService {
 
     @Override
     public void deleteMealPlan(Integer id) {
+
+        // Fetch the Meal Plan
+        MealPlan mealPlan = mealPlanRepository.findById(id)
+                .orElseThrow(() -> new MealPlanNotFoundException("Meal Plan not found"));
+
+        // 🔐 Get the currently authenticated user's ID
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = ((UserDetails) authentication.getPrincipal()).getUsername();
+        User user = userService.findByEmail(username).orElseThrow(() -> new AuthenticationCredentialsNotFoundException("Value not present"));;
+        Integer userId = user.getUserId();
+
+        // Check if the authenticated user owns the meal plan
+        if (!mealPlan.getUser().getUserId().equals(userId)) {
+            throw new AccessDeniedException("You do not have permission to delete this meal plan.");
+        }
+
+        // Delete Meal Plan from DB
         mealPlanRepository.deleteById(id);
     }
 
+    // Add recipe to Meal Plan
     @Override
     public MealPlanRecipeMapping addMealPlanRecipeMapping(Integer mealPlanId, Integer recipeId) {
 
@@ -98,7 +129,7 @@ public class MealPlanServiceImpl implements MealPlanService {
 
         // Check if the mapping already exists to prevent duplicates
         if (mealPlanRecipeMappingRepository.existsById(mappingId)) {
-            throw new MealPlanNotFoundException("This recipe is already added to the meal plan.");
+            throw new RecipeAlreadyInMealPlanException("This recipe is already added to the meal plan.");
         }
 
         // Create a new MealPlanRecipeMapping instance
@@ -111,6 +142,7 @@ public class MealPlanServiceImpl implements MealPlanService {
         return mealPlanRecipeMappingRepository.save(mapping);
     }
 
+    // Delete recipe from Meal Plan
     @Override
     public void deleteMealPlanRecipeMapping(Integer mealPlanId, Integer recipeId) {
 
