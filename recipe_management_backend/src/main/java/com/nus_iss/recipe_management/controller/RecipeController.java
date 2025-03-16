@@ -4,7 +4,9 @@ import com.nus_iss.recipe_management.exception.RecipeNotFoundException;
 import com.nus_iss.recipe_management.model.Recipe;
 import com.nus_iss.recipe_management.service.RecipeService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -18,8 +20,16 @@ public class RecipeController {
     // Create a new recipe
     @PostMapping
     public ResponseEntity<Recipe> createRecipe(@RequestBody Recipe recipe) {
-        Recipe createdRecipe = recipeService.createRecipe(recipe);
-        return ResponseEntity.ok(createdRecipe);
+        ResponseEntity<Recipe> response;
+        try {
+            Recipe createdRecipe = recipeService.createRecipe(recipe);
+            response = ResponseEntity.ok(createdRecipe);
+        } catch (AccessDeniedException ex) {
+            response = ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        } catch (Exception ex) {
+            response = ResponseEntity.internalServerError().build();
+        }
+        return response;
     }
 
     // Get all recipes
@@ -51,6 +61,8 @@ public class RecipeController {
         try {
             Recipe updatedRecipe = recipeService.updateRecipe(id, recipeDetails);
             response = ResponseEntity.ok(updatedRecipe);
+        } catch (AccessDeniedException ex) {
+            response = ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         } catch (RecipeNotFoundException ex) {
             response = ResponseEntity.notFound().build();
         } catch (Exception ex) {
@@ -62,7 +74,17 @@ public class RecipeController {
     // Delete a recipe by ID
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteRecipe(@PathVariable Integer id) {
-        recipeService.deleteRecipe(id);
-        return ResponseEntity.noContent().build();
+        ResponseEntity<Void> response;
+        try {
+            recipeService.deleteRecipe(id);
+            response = ResponseEntity.ok().build();
+        } catch (AccessDeniedException ex) {
+            response = ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        } catch (RecipeNotFoundException ex) {
+            response = ResponseEntity.notFound().build();
+        } catch (Exception ex) {
+            response = ResponseEntity.internalServerError().build();
+        }
+        return response;
     }
 }
