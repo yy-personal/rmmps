@@ -102,7 +102,7 @@ public class MealPlanController {
         ResponseEntity<MealPlan> response;
         try {
             mealPlanService.deleteMealPlan(id);
-            response = ResponseEntity.noContent().build();
+            response = ResponseEntity.ok().build();
         } catch (MealPlanNotFoundException ex) {
             response = ResponseEntity.notFound().build();
         } catch (AccessDeniedException ex) {

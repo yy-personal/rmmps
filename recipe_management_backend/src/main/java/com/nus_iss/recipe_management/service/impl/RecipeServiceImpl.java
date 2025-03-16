@@ -23,6 +23,18 @@ public class RecipeServiceImpl implements RecipeService {
 
     @Override
     public Recipe createRecipe(Recipe recipe) {
+
+        // 🔐 Get the currently authenticated user's ID
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = ((UserDetails) authentication.getPrincipal()).getUsername();
+        User user = userService.findByEmail(username).orElseThrow(() -> new AuthenticationCredentialsNotFoundException("Value not present"));;
+        Integer userId = user.getUserId();
+
+        // Check if the authenticated user owns the recipe
+        if (!recipe.getUser().getUserId().equals(userId)) {
+            throw new AccessDeniedException("You do not have permission to create this recipe as the user of the user id submitted.");
+        }
+
         return recipeRepository.save(recipe);
     }
 
@@ -41,6 +53,17 @@ public class RecipeServiceImpl implements RecipeService {
     public Recipe updateRecipe(Integer id, Recipe updatedRecipe) throws RecipeNotFoundException {
         Recipe existingRecipe = recipeRepository.findById(id)
                 .orElseThrow(() -> new RecipeNotFoundException("Recipe not found."));
+
+        // 🔐 Get the currently authenticated user's ID
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = ((UserDetails) authentication.getPrincipal()).getUsername();
+        User user = userService.findByEmail(username).orElseThrow(() -> new AuthenticationCredentialsNotFoundException("Value not present"));;
+        Integer userId = user.getUserId();
+
+        // Check if the authenticated user owns the recipe
+        if (!existingRecipe.getUser().getUserId().equals(userId)) {
+            throw new AccessDeniedException("You do not have permission to modify this recipe.");
+        }
 
         existingRecipe.setServings(updatedRecipe.getServings());
         existingRecipe.setSteps(updatedRecipe.getSteps());
