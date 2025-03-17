@@ -6,6 +6,10 @@ import com.nus_iss.recipe_management.exception.RecipeNotFoundException;
 import com.nus_iss.recipe_management.model.MealPlan;
 import com.nus_iss.recipe_management.model.MealPlanRecipeMapping;
 import com.nus_iss.recipe_management.service.MealPlanService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,16 +21,21 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/mealPlans")
 @RequiredArgsConstructor
+@Tag(name = "Meal Plan Controller")
 public class MealPlanController {
     private final MealPlanService mealPlanService;
 
-    // Create a new meal plan
+    @Operation(summary = "Create a new meal plan")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Meal plan created successfully"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized")
+    })
     @PostMapping("/create")
     public ResponseEntity<MealPlan> createMealPlan(@RequestBody MealPlan mealPlan) {
         ResponseEntity<MealPlan> response;
         try {
             MealPlan createdMealPlan = mealPlanService.createMealPlan(mealPlan);
-            response =  ResponseEntity.ok(createdMealPlan);
+            response = ResponseEntity.ok(createdMealPlan);
         } catch (AccessDeniedException ex) {
             response = ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         } catch (Exception ex) {
@@ -35,7 +44,13 @@ public class MealPlanController {
         return response;
     }
 
-    // Add a recipe to a meal plan
+    @Operation(summary = "Add recipe to meal plan")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Recipe added to meal plan"),
+            @ApiResponse(responseCode = "404", description = "Meal plan or recipe not found"),
+            @ApiResponse(responseCode = "409", description = "Recipe already in meal plan"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized")
+    })
     @PostMapping("/add-recipe")
     public ResponseEntity<MealPlanRecipeMapping> addRecipeToMealPlan(
             @RequestParam Integer mealPlanId,
@@ -43,8 +58,8 @@ public class MealPlanController {
 
         ResponseEntity<MealPlanRecipeMapping> response;
         try {
-            MealPlanRecipeMapping createdMealPlanRecipeMapping = mealPlanService.addMealPlanRecipeMapping(mealPlanId, recipeId);
-            response = ResponseEntity.ok(createdMealPlanRecipeMapping);
+            MealPlanRecipeMapping createdMapping = mealPlanService.addMealPlanRecipeMapping(mealPlanId, recipeId);
+            response = ResponseEntity.ok(createdMapping);
         } catch (MealPlanNotFoundException | RecipeNotFoundException ex) {
             response = ResponseEntity.notFound().build();
         } catch (RecipeAlreadyInMealPlanException ex) {
@@ -57,14 +72,19 @@ public class MealPlanController {
         return response;
     }
 
-    // Get all meal plans
+    @Operation(summary = "Get all meal plans")
+    @ApiResponse(responseCode = "200", description = "List of meal plans retrieved")
     @GetMapping
     public ResponseEntity<List<MealPlan>> getAllMealPlans() {
         List<MealPlan> mealPlans = mealPlanService.getAllMealPlans();
         return ResponseEntity.ok(mealPlans);
     }
 
-    // Get a meal plan by ID
+    @Operation(summary = "Get meal plan by ID")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Meal plan found"),
+            @ApiResponse(responseCode = "404", description = "Meal plan not found")
+    })
     @GetMapping("/{id}")
     public ResponseEntity<MealPlan> getMealPlanById(@PathVariable Integer id) {
         ResponseEntity<MealPlan> response;
@@ -79,7 +99,12 @@ public class MealPlanController {
         return response;
     }
 
-    // Update a meal plan by ID
+    @Operation(summary = "Update meal plan by ID")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Meal plan updated"),
+            @ApiResponse(responseCode = "404", description = "Meal plan not found"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized")
+    })
     @PutMapping("/{id}")
     public ResponseEntity<MealPlan> updateMealPlanById(@PathVariable Integer id, @RequestBody MealPlan mealPlanDetails) {
         ResponseEntity<MealPlan> response;
@@ -96,7 +121,12 @@ public class MealPlanController {
         return response;
     }
 
-    // Delete a meal plan by ID
+    @Operation(summary = "Delete meal plan by ID")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Meal plan deleted"),
+            @ApiResponse(responseCode = "404", description = "Meal plan not found"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized")
+    })
     @DeleteMapping("/{id}")
     public ResponseEntity<MealPlan> deleteMealPlan(@PathVariable Integer id) {
         ResponseEntity<MealPlan> response;
@@ -110,11 +140,15 @@ public class MealPlanController {
         } catch (Exception ex) {
             response = ResponseEntity.internalServerError().build();
         }
-
         return response;
     }
 
-    // Remove a recipe from a meal plan
+    @Operation(summary = "Remove recipe from meal plan")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Recipe removed from meal plan"),
+            @ApiResponse(responseCode = "404", description = "Meal plan or recipe mapping not found"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized")
+    })
     @DeleteMapping
     public ResponseEntity<String> removeRecipeFromMealPlan(
             @RequestParam Integer mealPlanId,

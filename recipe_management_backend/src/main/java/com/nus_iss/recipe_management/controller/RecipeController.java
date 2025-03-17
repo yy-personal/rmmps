@@ -3,6 +3,10 @@ package com.nus_iss.recipe_management.controller;
 import com.nus_iss.recipe_management.exception.RecipeNotFoundException;
 import com.nus_iss.recipe_management.model.Recipe;
 import com.nus_iss.recipe_management.service.RecipeService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,10 +18,16 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/recipes")
 @RequiredArgsConstructor
+@Tag(name = "Recipe Controller")
 public class RecipeController {
     private final RecipeService recipeService;
 
-    // Create a new recipe
+    @Operation(summary = "Create a new recipe")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Recipe created successfully"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "500", description = "Server error")
+    })
     @PostMapping
     public ResponseEntity<Recipe> createRecipe(@RequestBody Recipe recipe) {
         ResponseEntity<Recipe> response;
@@ -32,14 +42,19 @@ public class RecipeController {
         return response;
     }
 
-    // Get all recipes
+    @Operation(summary = "Get all recipes")
+    @ApiResponse(responseCode = "200", description = "List of recipes retrieved")
     @GetMapping
     public ResponseEntity<List<Recipe>> getAllRecipes() {
         List<Recipe> recipes = recipeService.getAllRecipes();
         return ResponseEntity.ok(recipes);
     }
 
-    // Get a recipe by ID
+    @Operation(summary = "Get recipe by ID")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Recipe found"),
+            @ApiResponse(responseCode = "404", description = "Recipe not found")
+    })
     @GetMapping("/{id}")
     public ResponseEntity<Recipe> getRecipeById(@PathVariable Integer id) {
         ResponseEntity<Recipe> response;
@@ -54,7 +69,12 @@ public class RecipeController {
         return response;
     }
 
-    // Update a recipe by ID
+    @Operation(summary = "Update recipe by ID")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Recipe updated"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "404", description = "Recipe not found")
+    })
     @PutMapping("/{id}")
     public ResponseEntity<Recipe> updateRecipeById(@PathVariable Integer id, @RequestBody Recipe recipeDetails) {
         ResponseEntity<Recipe> response;
@@ -71,7 +91,12 @@ public class RecipeController {
         return response;
     }
 
-    // Delete a recipe by ID
+    @Operation(summary = "Delete recipe by ID")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Recipe deleted"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "404", description = "Recipe not found")
+    })
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteRecipe(@PathVariable Integer id) {
         ResponseEntity<Void> response;
