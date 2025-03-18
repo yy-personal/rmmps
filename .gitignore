@@ -40,3 +40,4 @@ build/
 
 ### Ignore environment file ###
 .env
+/cursor_project_knowledge
