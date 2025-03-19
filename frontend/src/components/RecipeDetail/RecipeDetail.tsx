@@ -24,13 +24,22 @@ import PersonIcon from "@mui/icons-material/Person";
 import DateRangeIcon from "@mui/icons-material/DateRange";
 import SignalCellularAltIcon from "@mui/icons-material/SignalCellularAlt";
 import Chip from "@mui/material/Chip";
-
+import LocalDiningIcon from "@mui/icons-material/LocalDining";
+import Checkbox from "@mui/material/Checkbox";
+import ListItemText from "@mui/material/ListItemText";
+import Autocomplete from "@mui/material/Autocomplete";
+import OutlinedInput from "@mui/material/OutlinedInput";
 
 interface User {
 	userId: number;
 	email: string;
 	passwordHash?: string;
 	createdAt?: string;
+}
+
+interface MealType {
+	mealTypeId: number;
+	name: string;
 }
 
 interface RecipeDetailProps {
@@ -49,6 +58,7 @@ interface RecipeType {
 	servings: number;
 	steps: string;
 	createdAt: string;
+	mealTypes: MealType[];
 }
 
 function RecipeDetail({ recipeId, open, onClose }: RecipeDetailProps) {
@@ -58,6 +68,26 @@ function RecipeDetail({ recipeId, open, onClose }: RecipeDetailProps) {
 	const [isEditing, setIsEditing] = useState(false);
 	const [isSaving, setIsSaving] = useState(false);
 	const [editFormState, setEditFormState] = useState<Partial<RecipeType>>({});
+	const [availableMealTypes, setAvailableMealTypes] = useState<MealType[]>(
+		[]
+	);
+	const [selectedMealTypes, setSelectedMealTypes] = useState<number[]>([]);
+
+	// Fetch available meal types
+	useEffect(() => {
+		const fetchMealTypes = async () => {
+			try {
+				const responseData = await sendRequest(
+					`${process.env.REACT_APP_BACKEND_URL}/mealtypes`
+				);
+				setAvailableMealTypes(responseData);
+			} catch (err) {
+				console.log(err.message || serverError);
+			}
+		};
+
+		fetchMealTypes();
+	}, [sendRequest, serverError]);
 
 	useEffect(() => {
 		const fetchRecipe = async () => {
@@ -76,7 +106,22 @@ function RecipeDetail({ recipeId, open, onClose }: RecipeDetailProps) {
 					difficultyLevel: responseData.difficultyLevel,
 					servings: responseData.servings,
 					steps: responseData.steps,
+					mealTypes: responseData.mealTypes || [],
 				});
+
+				// Set selected meal types based on the recipe's meal types
+				if (
+					responseData.mealTypes &&
+					responseData.mealTypes.length > 0
+				) {
+					setSelectedMealTypes(
+						responseData.mealTypes.map(
+							(mt: MealType) => mt.mealTypeId
+						)
+					);
+				} else {
+					setSelectedMealTypes([]);
+				}
 			} catch (err) {
 				console.log(err.message || serverError);
 			}
@@ -106,6 +151,29 @@ function RecipeDetail({ recipeId, open, onClose }: RecipeDetailProps) {
 		});
 	};
 
+	const handleMealTypeChange = (
+		event: SelectChangeEvent<typeof selectedMealTypes>
+	) => {
+		const {
+			target: { value },
+		} = event;
+
+		// On autofill we get a stringified value.
+		const selectedValues =
+			typeof value === "string" ? value.split(",").map(Number) : value;
+		setSelectedMealTypes(selectedValues);
+
+		// Update the form state with the selected meal types
+		const selectedMealTypeObjects = availableMealTypes
+			.filter((mt) => selectedValues.includes(mt.mealTypeId))
+			.map((mt) => ({ mealTypeId: mt.mealTypeId, name: mt.name }));
+
+		setEditFormState({
+			...editFormState,
+			mealTypes: selectedMealTypeObjects,
+		});
+	};
+
 	const handleStartEditing = () => {
 		setIsEditing(true);
 	};
@@ -120,7 +188,17 @@ function RecipeDetail({ recipeId, open, onClose }: RecipeDetailProps) {
 				difficultyLevel: recipe.difficultyLevel,
 				servings: recipe.servings,
 				steps: recipe.steps,
+				mealTypes: recipe.mealTypes || [],
 			});
+
+			// Reset selected meal types
+			if (recipe.mealTypes && recipe.mealTypes.length > 0) {
+				setSelectedMealTypes(
+					recipe.mealTypes.map((mt) => mt.mealTypeId)
+				);
+			} else {
+				setSelectedMealTypes([]);
+			}
 		}
 		setIsEditing(false);
 	};
@@ -139,6 +217,7 @@ function RecipeDetail({ recipeId, open, onClose }: RecipeDetailProps) {
 				difficultyLevel: editFormState.difficultyLevel,
 				servings: editFormState.servings,
 				steps: editFormState.steps,
+				mealTypes: selectedMealTypes.map((id) => ({ mealTypeId: id })),
 			};
 
 			// Send update request
@@ -432,6 +511,124 @@ function RecipeDetail({ recipeId, open, onClose }: RecipeDetailProps) {
 									</Stack>
 								</Grid>
 							</Grid>
+
+							{/* Meal Types Section */}
+							<Box sx={{ mb: 2 }}>
+								<Stack
+									direction="row"
+									alignItems="center"
+									spacing={1}
+									sx={{ mb: 1 }}
+								>
+									<LocalDiningIcon
+										sx={{ color: "#9c27b0" }}
+									/>
+									<Typography
+										variant="subtitle1"
+										fontWeight="medium"
+									>
+										Meal Types
+									</Typography>
+								</Stack>
+
+								{isEditing ? (
+									<FormControl fullWidth sx={{ mb: 2 }}>
+										<InputLabel id="meal-type-label">
+											Meal Types
+										</InputLabel>
+										<Select
+											labelId="meal-type-label"
+											id="meal-type-select"
+											multiple
+											value={selectedMealTypes}
+											onChange={handleMealTypeChange}
+											input={
+												<OutlinedInput label="Meal Types" />
+											}
+											renderValue={(selected) => (
+												<Box
+													sx={{
+														display: "flex",
+														flexWrap: "wrap",
+														gap: 0.5,
+													}}
+												>
+													{selected.map((value) => {
+														const mealType =
+															availableMealTypes.find(
+																(mt) =>
+																	mt.mealTypeId ===
+																	value
+															);
+														return mealType ? (
+															<Chip
+																key={value}
+																label={
+																	mealType.name
+																}
+																size="small"
+															/>
+														) : null;
+													})}
+												</Box>
+											)}
+										>
+											{availableMealTypes.map(
+												(mealType) => (
+													<MenuItem
+														key={
+															mealType.mealTypeId
+														}
+														value={
+															mealType.mealTypeId
+														}
+													>
+														<Checkbox
+															checked={
+																selectedMealTypes.indexOf(
+																	mealType.mealTypeId
+																) > -1
+															}
+														/>
+														<ListItemText
+															primary={
+																mealType.name
+															}
+														/>
+													</MenuItem>
+												)
+											)}
+										</Select>
+									</FormControl>
+								) : (
+									<Box
+										sx={{
+											display: "flex",
+											gap: 1,
+											flexWrap: "wrap",
+										}}
+									>
+										{recipe.mealTypes &&
+										recipe.mealTypes.length > 0 ? (
+											recipe.mealTypes.map((mealType) => (
+												<Chip
+													key={mealType.mealTypeId}
+													label={mealType.name}
+													size="small"
+													color="secondary"
+												/>
+											))
+										) : (
+											<Typography
+												variant="body2"
+												color="text.secondary"
+											>
+												No meal types specified
+											</Typography>
+										)}
+									</Box>
+								)}
+							</Box>
 
 							<Divider sx={{ my: 2 }} />
 

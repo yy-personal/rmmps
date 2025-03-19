@@ -1,14 +1,12 @@
 package com.nus_iss.recipe_management.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 
-// Recipes Entity
 @Entity
 @Table(name = "Recipes")
 @Getter @Setter
@@ -43,8 +41,13 @@ public class Recipe {
     @OneToMany(mappedBy = "recipe", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<RecipeDietaryRestrictionMapping> dietaryRestrictions = new HashSet<>();
 
-    @OneToMany(mappedBy = "recipe", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Set<RecipeCategoryMapping> recipeCategories = new HashSet<>();
+    @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+    @JoinTable(
+            name = "RecipeMealTypeMapping",
+            joinColumns = @JoinColumn(name = "recipe_id"),
+            inverseJoinColumns = @JoinColumn(name = "meal_type_id")
+    )
+    private Set<MealType> mealTypes = new HashSet<>();
 
     @OneToMany(mappedBy = "recipe", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<MealPlanRecipeMapping> mealPlans = new HashSet<>();
@@ -58,4 +61,3 @@ public class Recipe {
         return mealPlans;
     }
 }
-
