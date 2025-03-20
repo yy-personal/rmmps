@@ -60,6 +60,11 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/api/recipes/**").hasAnyRole("USER", "ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/recipes/**").hasAnyRole("USER", "ADMIN")
                         .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/ingredients").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/ingredients/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/ingredients").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/ingredients/**").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/ingredients/**").hasAnyRole("USER", "ADMIN")
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(new JwtAuthFilter(jwtUtil, customUserDetailsService), UsernamePasswordAuthenticationFilter.class);

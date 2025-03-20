@@ -1,7 +1,9 @@
 package com.nus_iss.recipe_management.controller;
 
+import com.nus_iss.recipe_management.dto.RecipeIngredientDTO;
 import com.nus_iss.recipe_management.exception.RecipeNotFoundException;
-import com.nus_iss.recipe_management.model.Recipe;
+import com.nus_iss.recipe_management.model.*;
+import com.nus_iss.recipe_management.service.IngredientService;
 import com.nus_iss.recipe_management.service.RecipeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -13,7 +15,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/recipes")
@@ -21,6 +24,7 @@ import java.util.List;
 @Tag(name = "Recipe Controller")
 public class RecipeController {
     private final RecipeService recipeService;
+    private final IngredientService ingredientService;
 
     @Operation(summary = "Create a new recipe")
     @ApiResponses({
@@ -111,5 +115,86 @@ public class RecipeController {
             response = ResponseEntity.internalServerError().build();
         }
         return response;
+    }
+
+    @Operation(summary = "Get recipe ingredients")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Ingredients retrieved"),
+            @ApiResponse(responseCode = "404", description = "Recipe not found")
+    })
+    @GetMapping("/{id}/ingredients")
+    public ResponseEntity<List<RecipeIngredientDTO>> getRecipeIngredients(@PathVariable Integer id) {
+        try {
+            Recipe recipe = recipeService.getRecipeById(id);
+
+            List<RecipeIngredientDTO> ingredients = recipe.getIngredients().stream()
+                    .map(mapping -> new RecipeIngredientDTO(
+                            mapping.getIngredient().getIngredientId(),
+                            mapping.getIngredient().getName(),
+                            mapping.getQuantity()))
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(ingredients);
+        } catch (RecipeNotFoundException ex) {
+            return ResponseEntity.notFound().build();
+        } catch (Exception ex) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    @Operation(summary = "Update recipe ingredients")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Ingredients updated"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "404", description = "Recipe not found")
+    })
+    @PutMapping("/{id}/ingredients")
+    public ResponseEntity<Recipe> updateRecipeIngredients(
+            @PathVariable Integer id,
+            @RequestBody List<RecipeIngredientDTO> ingredientDTOs) {
+
+        try {
+            // Get the existing recipe
+            Recipe recipe = recipeService.getRecipeById(id);
+
+            // Create a set of ingredient mappings from the DTOs
+            Set<RecipeIngredientsMapping> ingredientMappings = new HashSet<>();
+
+            for (RecipeIngredientDTO dto : ingredientDTOs) {
+                Ingredient ingredient = new Ingredient();
+
+                // If ingredientId is provided, use it
+                if (dto.getIngredientId() != null) {
+                    ingredient.setIngredientId(dto.getIngredientId());
+                } else if (dto.getName() != null && !dto.getName().isEmpty()) {
+                    // Otherwise use the name to find or create
+                    ingredient.setName(dto.getName());
+                } else {
+                    // Skip if neither id nor name is provided
+                    continue;
+                }
+
+                // Create the mapping
+                RecipeIngredientsMapping mapping = new RecipeIngredientsMapping();
+                mapping.setIngredient(ingredient);
+                mapping.setQuantity(dto.getQuantity());
+
+                ingredientMappings.add(mapping);
+            }
+
+            // Set the ingredients on the recipe
+            recipe.setIngredients(ingredientMappings);
+
+            // Update the recipe
+            Recipe updatedRecipe = recipeService.updateRecipe(id, recipe);
+            return ResponseEntity.ok(updatedRecipe);
+
+        } catch (AccessDeniedException ex) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        } catch (RecipeNotFoundException ex) {
+            return ResponseEntity.notFound().build();
+        } catch (Exception ex) {
+            return ResponseEntity.internalServerError().build();
+        }
     }
 }
