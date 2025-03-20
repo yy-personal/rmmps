@@ -1,5 +1,7 @@
 package com.nus_iss.recipe_management.controller;
 
+import com.nus_iss.recipe_management.dto.RecipeDto;
+import com.nus_iss.recipe_management.dto.RecipeIngredientDto;
 import com.nus_iss.recipe_management.exception.RecipeNotFoundException;
 import com.nus_iss.recipe_management.model.Recipe;
 import com.nus_iss.recipe_management.service.RecipeService;
@@ -33,6 +35,26 @@ public class RecipeController {
         ResponseEntity<Recipe> response;
         try {
             Recipe createdRecipe = recipeService.createRecipe(recipe);
+            response = ResponseEntity.ok(createdRecipe);
+        } catch (AccessDeniedException ex) {
+            response = ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        } catch (Exception ex) {
+            response = ResponseEntity.internalServerError().build();
+        }
+        return response;
+    }
+
+    @Operation(summary = "Create a new recipe with ingredients")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Recipe created successfully"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "500", description = "Server error")
+    })
+    @PostMapping("/with-ingredients")
+    public ResponseEntity<Recipe> createRecipeWithIngredients(@RequestBody RecipeDto recipeDto) {
+        ResponseEntity<Recipe> response;
+        try {
+            Recipe createdRecipe = recipeService.createRecipeWithIngredients(recipeDto);
             response = ResponseEntity.ok(createdRecipe);
         } catch (AccessDeniedException ex) {
             response = ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
@@ -91,6 +113,28 @@ public class RecipeController {
         return response;
     }
 
+    @Operation(summary = "Update recipe with ingredients")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Recipe updated"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "404", description = "Recipe not found")
+    })
+    @PutMapping("/{id}/with-ingredients")
+    public ResponseEntity<Recipe> updateRecipeWithIngredients(@PathVariable Integer id, @RequestBody RecipeDto recipeDto) {
+        ResponseEntity<Recipe> response;
+        try {
+            Recipe updatedRecipe = recipeService.updateRecipeWithIngredients(id, recipeDto);
+            response = ResponseEntity.ok(updatedRecipe);
+        } catch (AccessDeniedException ex) {
+            response = ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        } catch (RecipeNotFoundException ex) {
+            response = ResponseEntity.notFound().build();
+        } catch (Exception ex) {
+            response = ResponseEntity.internalServerError().build();
+        }
+        return response;
+    }
+
     @Operation(summary = "Delete recipe by ID")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Recipe deleted"),
@@ -105,6 +149,25 @@ public class RecipeController {
             response = ResponseEntity.ok().build();
         } catch (AccessDeniedException ex) {
             response = ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        } catch (RecipeNotFoundException ex) {
+            response = ResponseEntity.notFound().build();
+        } catch (Exception ex) {
+            response = ResponseEntity.internalServerError().build();
+        }
+        return response;
+    }
+
+    @Operation(summary = "Get recipe ingredients")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Ingredients found"),
+            @ApiResponse(responseCode = "404", description = "Recipe not found")
+    })
+    @GetMapping("/{id}/ingredients")
+    public ResponseEntity<List<RecipeIngredientDto>> getRecipeIngredients(@PathVariable Integer id) {
+        ResponseEntity<List<RecipeIngredientDto>> response;
+        try {
+            List<RecipeIngredientDto> ingredients = recipeService.getRecipeIngredients(id);
+            response = ResponseEntity.ok(ingredients);
         } catch (RecipeNotFoundException ex) {
             response = ResponseEntity.notFound().build();
         } catch (Exception ex) {
