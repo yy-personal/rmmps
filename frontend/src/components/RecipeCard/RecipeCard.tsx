@@ -7,10 +7,19 @@ import CardContent from "@mui/material/CardContent";
 import CardActions from "@mui/material/CardActions";
 import IconButton from "@mui/material/IconButton";
 import Typography from "@mui/material/Typography";
-import FavoriteIcon from "@mui/icons-material/Favorite";
-import ShareIcon from "@mui/icons-material/Share";
+
 import InfoIcon from "@mui/icons-material/Info";
+import Chip from "@mui/material/Chip";
+import AccessTimeIcon from "@mui/icons-material/AccessTime";
+import RestaurantIcon from "@mui/icons-material/Restaurant";
+import SignalCellularAltIcon from "@mui/icons-material/SignalCellularAlt";
+import Avatar from "@mui/material/Avatar";
 import RecipeDetail from "../RecipeDetail/RecipeDetail";
+
+interface MealType {
+	mealTypeId: number;
+	name: string;
+}
 
 interface User {
 	userId: number;
@@ -20,17 +29,82 @@ interface User {
 interface RecipeType {
 	recipeId: number;
 	title: string;
-	description: string;
 	user: User;
 	preparationTime: number;
 	cookingTime: number;
 	difficultyLevel: string;
 	servings: number;
 	steps: string;
+	mealTypes?: MealType[];
 }
+
+// Function to generate a unique background color based on recipe title
+const generateBackgroundColor = (title: string) => {
+	let hash = 0;
+	for (let i = 0; i < title.length; i++) {
+		hash = title.charCodeAt(i) + ((hash << 5) - hash);
+	}
+	const hue = hash % 360;
+	return `hsl(${hue}, 70%, 80%)`;
+};
+
+// Function to get a food image based on meal type
+const getMealTypeImage = (mealTypes?: MealType[]) => {
+	// Default image path (for "Other" category)
+	let imagePath = "/images/food/other.jpeg";
+
+	// Return default if no meal types provided
+	if (!mealTypes || mealTypes.length === 0) {
+		return imagePath;
+	}
+
+	// Get the first meal type
+	const firstMealType = mealTypes[0];
+
+	// Select image based on meal type ID
+	switch (firstMealType.mealTypeId) {
+		case 1:
+			return "/images/food/breakfast.jpeg";
+		case 2:
+			return "/images/food/lunch.jpeg";
+		case 3:
+			return "/images/food/dinner.jpeg";
+		case 4:
+			return "/images/food/dessert.jpeg";
+		case 5:
+			return "/images/food/snack.jpeg";
+		default:
+			return "/images/food/other.jpeg";
+	}
+};
+
+// Function to get difficulty level color
+const getDifficultyColor = (level: string) => {
+	switch (level) {
+		case "EASY":
+			return "#4caf50"; // green
+		case "MEDIUM":
+			return "#ff9800"; // orange
+		case "HARD":
+			return "#f44336"; // red
+		default:
+			return "#757575"; // grey
+	}
+};
+
+// Function to get user initials for avatar
+const getUserInitials = (email: string) => {
+	if (!email) return "U";
+	// Get the part before @ symbol
+	const username = email.split("@")[0];
+	// Return first character or first two characters
+	if (username.length <= 1) return username.toUpperCase();
+	return username.substring(0, 2).toUpperCase();
+};
 
 function RecipeCard(props: RecipeType) {
 	const [detailOpen, setDetailOpen] = useState(false);
+	const [isHovered, setIsHovered] = useState(false);
 
 	const handleOpenDetail = () => {
 		setDetailOpen(true);
@@ -40,41 +114,112 @@ function RecipeCard(props: RecipeType) {
 		setDetailOpen(false);
 	};
 
+	// Generate background color based on recipe title
+	const backgroundColor = generateBackgroundColor(props.title);
+
+	// Get total time (prep + cooking)
+	const totalTime = props.preparationTime + props.cookingTime;
+
 	return (
 		<>
 			<Box
 				sx={{
-					width: { xs: "100%", sm: "100%", md: "50%", lg: "25%" },
-					padding: "3px",
+					width: { xs: "100%", sm: "100%", md: "50%", lg: "33.33%" },
+					padding: "10px",
 					boxSizing: "border-box",
 				}}
 			>
-				<Card sx={{ cursor: "pointer" }} onClick={handleOpenDetail}>
+				<Card
+					sx={{
+						cursor: "pointer",
+						height: "100%",
+						display: "flex",
+						flexDirection: "column",
+						transition: "transform 0.2s, box-shadow 0.2s",
+						transform: isHovered ? "translateY(-5px)" : "none",
+						boxShadow: isHovered
+							? "0 10px 20px rgba(0,0,0,0.19), 0 6px 6px rgba(0,0,0,0.23)"
+							: "0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24)",
+					}}
+					onClick={handleOpenDetail}
+					onMouseEnter={() => setIsHovered(true)}
+					onMouseLeave={() => setIsHovered(false)}
+				>
 					<CardHeader
+						avatar={
+							<Avatar sx={{ bgcolor: backgroundColor }}>
+								{getUserInitials(props.user.email)}
+							</Avatar>
+						}
 						title={props.title}
-						subheader={`By: ${props.user.email}`}
+						titleTypographyProps={{ fontWeight: "bold" }}
+						subheader={
+							<Typography
+								variant="caption"
+								component="div"
+								sx={{ mt: 0.5 }}
+							>
+								by {props.user.email.split("@")[0]}
+							</Typography>
+						}
 					/>
 					<CardMedia
 						component="img"
-						height="194"
-						image="https://www.dinneratthezoo.com/wp-content/uploads/2019/04/lobster-mac-and-cheese-6.jpg"
-						alt="Paella dish"
+						sx={{
+							height: "200px", // Adjust height as needed
+							objectFit: "cover", // Ensures the image covers the container
+							objectPosition: "center bottom", // Focus on the bottom of the image
+							borderTop: "1px solid rgba(0,0,0,0.1)",
+							borderBottom: "1px solid rgba(0,0,0,0.1)",
+						}}
+						image={getMealTypeImage(props.mealTypes)}
+						alt={props.title}
 					/>
-					<CardContent>
-						<Typography
-							variant="body2"
-							sx={{ color: "text.secondary" }}
+					<CardContent sx={{ flexGrow: 1, pb: 1 }}>
+						{/* Quick info chips */}
+						<Box
+							sx={{
+								display: "flex",
+								flexWrap: "wrap",
+								gap: 0.5,
+								mb: 1.5,
+							}}
 						>
-							{props.description}
-						</Typography>
+							<Chip
+								icon={<AccessTimeIcon />}
+								label={`${totalTime} min`}
+								size="small"
+								variant="outlined"
+							/>
+							<Chip
+								icon={<RestaurantIcon />}
+								label={`${props.servings} servings`}
+								size="small"
+								variant="outlined"
+							/>
+							<Chip
+								icon={<SignalCellularAltIcon />}
+								label={
+									props.difficultyLevel.charAt(0) +
+									props.difficultyLevel.slice(1).toLowerCase()
+								}
+								size="small"
+								sx={{
+									bgcolor: getDifficultyColor(
+										props.difficultyLevel
+									),
+									color: "white",
+								}}
+							/>
+						</Box>
 					</CardContent>
-					<CardActions disableSpacing>
-						<IconButton aria-label="add to favorites">
-							<FavoriteIcon />
-						</IconButton>
-						<IconButton aria-label="share">
-							<ShareIcon />
-						</IconButton>
+					<CardActions
+						disableSpacing
+						sx={{
+							mt: "auto",
+							borderTop: "1px solid rgba(0,0,0,0.05)",
+						}}
+					>
 						<IconButton
 							aria-label="view details"
 							sx={{ marginLeft: "auto" }}

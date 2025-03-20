@@ -9,16 +9,21 @@ interface User {
   email: string;
 }
 
+interface MealType {
+	mealTypeId: number;
+	name: string;
+}
+
 interface RecipeType {
-  recipeId: number;
-  title: string;
-  description: string;
-  user: User;
-  preparationTime: number;
-  cookingTime: number;
-  difficultyLevel: string;
-  servings: number;
-  steps: string;
+	recipeId: number;
+	title: string;
+	user: User;
+	preparationTime: number;
+	cookingTime: number;
+	difficultyLevel: string;
+	servings: number;
+	steps: string;
+	mealTypes?: MealType[];
 }
 
 function RecipeList() {
@@ -54,19 +59,19 @@ function RecipeList() {
     >
       {recipes.map((recipe) => {
         return (
-          <RecipeCard
-            key={recipe.recipeId}
-            recipeId={recipe.recipeId}
-            title={recipe.title}
-            description={recipe.description}
-            user={recipe.user}
-            preparationTime={recipe.preparationTime}
-            cookingTime={recipe.cookingTime}
-            difficultyLevel={recipe.difficultyLevel}
-            servings={recipe.servings}
-            steps={recipe.steps}
-          />
-        );
+			<RecipeCard
+				key={recipe.recipeId}
+				recipeId={recipe.recipeId}
+				title={recipe.title}
+				user={recipe.user}
+				preparationTime={recipe.preparationTime}
+				cookingTime={recipe.cookingTime}
+				difficultyLevel={recipe.difficultyLevel}
+				servings={recipe.servings}
+				steps={recipe.steps}
+				mealTypes={recipe.mealTypes}
+			/>
+		);
       })}
     </Box>
   );
