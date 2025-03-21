@@ -80,56 +80,60 @@ public class RecipeServiceImpl implements RecipeService {
 
         // Save recipe first to get ID
         Recipe savedRecipe = recipeRepository.save(recipe);
+        recipeRepository.flush(); // Ensure the recipe is saved before adding ingredients
 
         // Process ingredients
         if (recipeDTO.getIngredients() != null && !recipeDTO.getIngredients().isEmpty()) {
-            Set<RecipeIngredientsMapping> mappings = new HashSet<>();
-
             for (RecipeIngredientDTO dto : recipeDTO.getIngredients()) {
-                Ingredient ingredient;
+                try {
+                    Ingredient ingredient;
 
-                if (dto.getIngredientId() != null) {
-                    // Use existing ingredient
-                    Optional<Ingredient> existingIngredient = ingredientRepository.findById(dto.getIngredientId());
-                    if (existingIngredient.isPresent()) {
+                    if (dto.getIngredientId() != null) {
+                        // Use existing ingredient
+                        Optional<Ingredient> existingIngredient = ingredientRepository.findById(dto.getIngredientId());
+                        if (existingIngredient.isEmpty()) {
+                            log.warn("Ingredient with ID {} not found, skipping", dto.getIngredientId());
+                            continue;
+                        }
                         ingredient = existingIngredient.get();
+                    } else if (dto.getName() != null && !dto.getName().isEmpty()) {
+                        // Create or find by name
+                        Optional<Ingredient> existingIngredient = ingredientRepository.findByName(dto.getName());
+                        if (existingIngredient.isPresent()) {
+                            ingredient = existingIngredient.get();
+                        } else {
+                            Ingredient newIngredient = new Ingredient();
+                            newIngredient.setName(dto.getName());
+                            ingredient = ingredientRepository.save(newIngredient);
+                            ingredientRepository.flush(); // Ensure ingredient is saved
+                        }
                     } else {
-                        // Skip if ingredient not found
-                        log.warn("Ingredient with ID {} not found, skipping", dto.getIngredientId());
+                        // Skip invalid entries
+                        log.warn("Invalid ingredient data (no ID or name), skipping");
                         continue;
                     }
-                } else if (dto.getName() != null && !dto.getName().isEmpty()) {
-                    // Create or find by name
-                    ingredient = ingredientRepository.findByName(dto.getName())
-                            .orElseGet(() -> {
-                                Ingredient newIngredient = new Ingredient();
-                                newIngredient.setName(dto.getName());
-                                return ingredientRepository.save(newIngredient);
-                            });
-                } else {
-                    // Skip invalid entries
-                    log.warn("Invalid ingredient data (no ID or name), skipping");
-                    continue;
+
+                    // Create mapping
+                    RecipeIngredientsMappingId mappingId = new RecipeIngredientsMappingId(
+                            savedRecipe.getRecipeId(), ingredient.getIngredientId());
+
+                    RecipeIngredientsMapping mapping = new RecipeIngredientsMapping();
+                    mapping.setId(mappingId);
+                    mapping.setRecipe(savedRecipe);
+                    mapping.setIngredient(ingredient);
+                    mapping.setQuantity(dto.getQuantity() != null ? dto.getQuantity() : "1 unit");
+
+                    recipeIngredientsMappingRepository.save(mapping);
+                } catch (Exception e) {
+                    log.error("Error processing ingredient: {}", e.getMessage(), e);
+                    // Continue with other ingredients
                 }
-
-                RecipeIngredientsMapping mapping = new RecipeIngredientsMapping(
-                        savedRecipe,
-                        ingredient,
-                        dto.getQuantity() != null ? dto.getQuantity() : "1 unit"
-                );
-
-                // Create the composite key
-                mapping.setId(new RecipeIngredientsMappingId(savedRecipe.getRecipeId(), ingredient.getIngredientId()));
-
-                // Save mapping
-                recipeIngredientsMappingRepository.save(mapping);
-                mappings.add(mapping);
             }
-
-            savedRecipe.setIngredients(mappings);
         }
 
-        return savedRecipe;
+        // Refresh the recipe to include ingredients
+        return recipeRepository.findById(savedRecipe.getRecipeId())
+                .orElse(savedRecipe);
     }
 
     @Override
@@ -233,7 +237,7 @@ public class RecipeServiceImpl implements RecipeService {
         // Process meal types
         if (recipeDTO.getMealTypeIds() != null && !recipeDTO.getMealTypeIds().isEmpty()) {
             Set<MealType> mealTypes = recipeDTO.getMealTypeIds().stream()
-                    .map(id2 -> mealTypeRepository.findById(id2).orElse(null))
+                    .map(mealTypeId -> mealTypeRepository.findById(mealTypeId).orElse(null))
                     .filter(Objects::nonNull)
                     .collect(Collectors.toSet());
 
@@ -241,62 +245,70 @@ public class RecipeServiceImpl implements RecipeService {
             existingRecipe.getMealTypes().addAll(mealTypes);
         }
 
+        // Save recipe changes
+        existingRecipe = recipeRepository.save(existingRecipe);
+        recipeRepository.flush();
+
         // Process ingredients if provided
         if (recipeDTO.getIngredients() != null) {
             // Remove existing ingredient mappings
-            for (RecipeIngredientsMapping mapping : existingRecipe.getIngredients()) {
-                recipeIngredientsMappingRepository.delete(mapping);
+            List<RecipeIngredientsMapping> existingMappings = recipeIngredientsMappingRepository.findByRecipeRecipeId(existingRecipe.getRecipeId());
+            if (!existingMappings.isEmpty()) {
+                recipeIngredientsMappingRepository.deleteAll(existingMappings);
+                recipeIngredientsMappingRepository.flush();
             }
-            existingRecipe.getIngredients().clear();
 
             // Add updated ingredients
             if (!recipeDTO.getIngredients().isEmpty()) {
-                Set<RecipeIngredientsMapping> mappings = new HashSet<>();
-
                 for (RecipeIngredientDTO dto : recipeDTO.getIngredients()) {
-                    Ingredient ingredient;
+                    try {
+                        Ingredient ingredient;
 
-                    if (dto.getIngredientId() != null) {
-                        // Use existing ingredient
-                        Optional<Ingredient> existingIngredient = ingredientRepository.findById(dto.getIngredientId());
-                        if (existingIngredient.isPresent()) {
+                        if (dto.getIngredientId() != null) {
+                            // Use existing ingredient
+                            Optional<Ingredient> existingIngredient = ingredientRepository.findById(dto.getIngredientId());
+                            if (existingIngredient.isEmpty()) {
+                                log.warn("Ingredient with ID {} not found, skipping", dto.getIngredientId());
+                                continue;
+                            }
                             ingredient = existingIngredient.get();
+                        } else if (dto.getName() != null && !dto.getName().isEmpty()) {
+                            // Create or find by name
+                            Optional<Ingredient> existingIngredient = ingredientRepository.findByName(dto.getName());
+                            if (existingIngredient.isPresent()) {
+                                ingredient = existingIngredient.get();
+                            } else {
+                                Ingredient newIngredient = new Ingredient();
+                                newIngredient.setName(dto.getName());
+                                ingredient = ingredientRepository.save(newIngredient);
+                                ingredientRepository.flush();
+                            }
                         } else {
-                            // Skip if ingredient not found
-                            log.warn("Ingredient with ID {} not found, skipping", dto.getIngredientId());
+                            // Skip invalid entries
+                            log.warn("Invalid ingredient data (no ID or name), skipping");
                             continue;
                         }
-                    } else if (dto.getName() != null && !dto.getName().isEmpty()) {
-                        // Create or find by name
-                        ingredient = ingredientRepository.findByName(dto.getName())
-                                .orElseGet(() -> {
-                                    Ingredient newIngredient = new Ingredient();
-                                    newIngredient.setName(dto.getName());
-                                    return ingredientRepository.save(newIngredient);
-                                });
-                    } else {
-                        // Skip invalid entries
-                        log.warn("Invalid ingredient data (no ID or name), skipping");
-                        continue;
+
+                        RecipeIngredientsMappingId mappingId = new RecipeIngredientsMappingId(
+                                existingRecipe.getRecipeId(), ingredient.getIngredientId());
+
+                        RecipeIngredientsMapping mapping = new RecipeIngredientsMapping();
+                        mapping.setId(mappingId);
+                        mapping.setRecipe(existingRecipe);
+                        mapping.setIngredient(ingredient);
+                        mapping.setQuantity(dto.getQuantity() != null ? dto.getQuantity() : "1 unit");
+
+                        recipeIngredientsMappingRepository.save(mapping);
+                    } catch (Exception e) {
+                        log.error("Error processing ingredient: {}", e.getMessage(), e);
                     }
-
-                    RecipeIngredientsMapping mapping = new RecipeIngredientsMapping(
-                            existingRecipe,
-                            ingredient,
-                            dto.getQuantity() != null ? dto.getQuantity() : "1 unit"
-                    );
-
-                    // Save mapping
-                    recipeIngredientsMappingRepository.save(mapping);
-                    mappings.add(mapping);
                 }
-
-                existingRecipe.setIngredients(mappings);
             }
         }
 
-        // Save and return updated recipe
-        return recipeRepository.save(existingRecipe);
+        // Refresh the recipe to include updated ingredients
+        return recipeRepository.findById(existingRecipe.getRecipeId())
+                .orElse(existingRecipe);
     }
 
     @Override

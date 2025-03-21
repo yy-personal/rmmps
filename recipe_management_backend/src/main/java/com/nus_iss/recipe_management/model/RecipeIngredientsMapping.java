@@ -7,34 +7,34 @@ import lombok.*;
 @Entity
 @Table(name = "recipe_ingredients")
 @Getter @Setter
-@NoArgsConstructor @AllArgsConstructor
+@NoArgsConstructor
 public class RecipeIngredientsMapping {
-
     @EmbeddedId
-    private RecipeIngredientsMappingId id;
+    private RecipeIngredientsMappingId id = new RecipeIngredientsMappingId();
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.EAGER)
     @MapsId("recipeId")
-    @JoinColumn(name = "recipe_id")
+    @JoinColumn(name = "recipe_id", nullable = false)
     private Recipe recipe;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.EAGER)
     @MapsId("ingredientId")
-    @JoinColumn(name = "ingredient_id")
+    @JoinColumn(name = "ingredient_id", nullable = false)
     private Ingredient ingredient;
 
     @Column(nullable = false)
-    private String quantity;
+    private String quantity = "1 unit";
 
-    // Convenience constructor
     public RecipeIngredientsMapping(Recipe recipe, Ingredient ingredient, String quantity) {
-        this.id = new RecipeIngredientsMappingId(recipe.getRecipeId(), ingredient.getIngredientId());
         this.recipe = recipe;
         this.ingredient = ingredient;
-        this.quantity = quantity;
+        this.quantity = (quantity != null && !quantity.trim().isEmpty()) ? quantity : "1 unit";
+        this.id = new RecipeIngredientsMappingId(
+                recipe != null ? recipe.getRecipeId() : null,
+                ingredient != null ? ingredient.getIngredientId() : null
+        );
     }
 
-    // To prevent recursive get in JSON response
     @JsonIgnore
     public Recipe getRecipe() {
         return recipe;
