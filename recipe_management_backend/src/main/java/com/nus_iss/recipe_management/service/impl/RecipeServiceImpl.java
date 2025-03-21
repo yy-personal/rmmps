@@ -18,8 +18,9 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -39,7 +40,7 @@ public class RecipeServiceImpl implements RecipeService {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = ((UserDetails) authentication.getPrincipal()).getUsername();
         User user = userService.findByEmail(username).orElseThrow(() ->
-                new AuthenticationCredentialsNotFoundException("User not found"));
+                new AuthenticationCredentialsNotFoundException("Value not present"));
         Integer userId = user.getUserId();
 
         // Check if the authenticated user owns the recipe
@@ -50,24 +51,15 @@ public class RecipeServiceImpl implements RecipeService {
         // Handle meal types
         processMealTypes(recipe);
 
-        // Extract ingredients before saving
-        Set<RecipeIngredientsMapping> ingredientMappings =
-                recipe.getIngredients() != null ? new HashSet<>(recipe.getIngredients()) : new HashSet<>();
-
-        // Clear ingredients temporarily to avoid issues with transient entities
-        recipe.getIngredients().clear();
-
         // Save the recipe first to get its ID
         Recipe savedRecipe = recipeRepository.save(recipe);
 
         // Handle ingredients if they exist
-        if (!ingredientMappings.isEmpty()) {
-            processIngredients(savedRecipe, ingredientMappings);
+        if (recipe.getIngredients() != null && !recipe.getIngredients().isEmpty()) {
+            processIngredients(savedRecipe, recipe.getIngredients());
         }
 
-        // Refresh the recipe to ensure all mappings are loaded
-        return recipeRepository.findById(savedRecipe.getRecipeId())
-                .orElseThrow(() -> new RecipeNotFoundException("Recipe not found after saving"));
+        return savedRecipe;
     }
 
     @Override
@@ -91,7 +83,7 @@ public class RecipeServiceImpl implements RecipeService {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = ((UserDetails) authentication.getPrincipal()).getUsername();
         User user = userService.findByEmail(username).orElseThrow(() ->
-                new AuthenticationCredentialsNotFoundException("User not found"));
+                new AuthenticationCredentialsNotFoundException("Value not present"));
         Integer userId = user.getUserId();
 
         // Check if the authenticated user owns the recipe
@@ -108,13 +100,42 @@ public class RecipeServiceImpl implements RecipeService {
         existingRecipe.setPreparationTime(updatedRecipe.getPreparationTime());
 
         // Handle meal types if provided
-        if (updatedRecipe.getMealTypes() != null) {
-            updateMealTypes(existingRecipe, updatedRecipe.getMealTypes());
+        if (updatedRecipe.getMealTypes() != null && !updatedRecipe.getMealTypes().isEmpty()) {
+            try {
+                // Create a new set for the updated meal types
+                Set<MealType> updatedMealTypes = new HashSet<>();
+
+                // First, fetch all the meal types by ID to ensure they exist
+                for (MealType mealType : updatedRecipe.getMealTypes()) {
+                    if (mealType != null && mealType.getMealTypeId() != null) {
+                        mealTypeRepository.findById(mealType.getMealTypeId())
+                                .ifPresent(updatedMealTypes::add);
+                    }
+                }
+
+                // Now clear and update the recipe's meal types if we found valid ones
+                if (!updatedMealTypes.isEmpty()) {
+                    existingRecipe.getMealTypes().clear();
+                    existingRecipe.getMealTypes().addAll(updatedMealTypes);
+                }
+            } catch (Exception e) {
+                // Log the exception but continue with other updates
+                log.error("Error updating meal types", e);
+            }
         }
 
         // Handle ingredients if provided
         if (updatedRecipe.getIngredients() != null) {
-            updateIngredients(existingRecipe, updatedRecipe.getIngredients());
+            // Remove existing ingredient mappings
+            for (RecipeIngredientsMapping mapping : existingRecipe.getIngredients()) {
+                recipeIngredientsMappingRepository.delete(mapping);
+            }
+            existingRecipe.getIngredients().clear();
+
+            // Add updated ingredients
+            if (!updatedRecipe.getIngredients().isEmpty()) {
+                processIngredients(existingRecipe, updatedRecipe.getIngredients());
+            }
         }
 
         // Save and return the updated recipe
@@ -122,7 +143,6 @@ public class RecipeServiceImpl implements RecipeService {
     }
 
     @Override
-    @Transactional
     public void deleteRecipe(Integer id) {
         Recipe recipe = recipeRepository.findById(id)
                 .orElseThrow(() -> new RecipeNotFoundException("Recipe not found"));
@@ -131,12 +151,12 @@ public class RecipeServiceImpl implements RecipeService {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = ((UserDetails) authentication.getPrincipal()).getUsername();
         User user = userService.findByEmail(username).orElseThrow(() ->
-                new AuthenticationCredentialsNotFoundException("User not found"));
+                new AuthenticationCredentialsNotFoundException("Value not present"));
         Integer userId = user.getUserId();
 
         // Check if the authenticated user owns the recipe
         if (!recipe.getUser().getUserId().equals(userId)) {
-            throw new AccessDeniedException("You do not have permission to delete this recipe.");
+            throw new AccessDeniedException("You do not have permission to modify this recipe.");
         }
         recipeRepository.deleteById(id);
     }
@@ -179,188 +199,50 @@ public class RecipeServiceImpl implements RecipeService {
         }
     }
 
-    private void updateMealTypes(Recipe existingRecipe, Set<MealType> updatedMealTypes) {
-        try {
-            // Create a new set for the updated meal types
-            Set<MealType> processedMealTypes = new HashSet<>();
-
-            // Process each meal type
-            for (MealType mealType : updatedMealTypes) {
-                if (mealType != null) {
-                    if (mealType.getMealTypeId() != null) {
-                        mealTypeRepository.findById(mealType.getMealTypeId())
-                                .ifPresent(processedMealTypes::add);
-                    } else if (mealType.getName() != null && !mealType.getName().isEmpty()) {
-                        MealType existingMealType = mealTypeService.findByName(mealType.getName())
-                                .orElseGet(() -> {
-                                    MealType newType = new MealType();
-                                    newType.setName(mealType.getName());
-                                    return mealTypeService.createMealType(newType);
-                                });
-                        processedMealTypes.add(existingMealType);
-                    }
-                }
-            }
-
-            // Update the recipe's meal types
-            existingRecipe.getMealTypes().clear();
-            existingRecipe.getMealTypes().addAll(processedMealTypes);
-
-            log.debug("Updated meal types for recipe {}: {}", existingRecipe.getRecipeId(), processedMealTypes.size());
-        } catch (Exception e) {
-            log.error("Error updating meal types: {}", e.getMessage(), e);
-            throw e;
-        }
-    }
-
     private void processIngredients(Recipe recipe, Set<RecipeIngredientsMapping> ingredientMappings) {
         try {
             for (RecipeIngredientsMapping mapping : ingredientMappings) {
                 Ingredient ingredient = mapping.getIngredient();
 
-                // Skip if ingredient is null
-                if (ingredient == null) {
-                    log.warn("Skipping null ingredient for recipe {}", recipe.getRecipeId());
-                    continue;
-                }
-
-                // Process the ingredient
-                Ingredient processedIngredient;
-
                 // If ingredient has ID, find existing one
                 if (ingredient.getIngredientId() != null) {
                     Ingredient existingIngredient = ingredientService.getIngredientById(ingredient.getIngredientId());
                     if (existingIngredient != null) {
-                        processedIngredient = existingIngredient;
+                        ingredient = existingIngredient;
                     } else {
                         // If ID doesn't exist, treat as new ingredient with name
-                        processedIngredient = processIngredientByName(ingredient);
+                        ingredient = processIngredientByName(ingredient);
                     }
                 } else if (ingredient.getName() != null && !ingredient.getName().isEmpty()) {
                     // Process by name if no ID but name exists
-                    processedIngredient = processIngredientByName(ingredient);
+                    ingredient = processIngredientByName(ingredient);
                 } else {
                     // Skip invalid ingredients
-                    log.warn("Skipping invalid ingredient (no ID or name) for recipe {}", recipe.getRecipeId());
                     continue;
                 }
+
+                // Create the mapping ID
+                RecipeIngredientsMappingId mappingId = new RecipeIngredientsMappingId(recipe.getRecipeId(), ingredient.getIngredientId());
 
                 // Create and save the mapping
                 RecipeIngredientsMapping newMapping = new RecipeIngredientsMapping();
-
-                // Create the mapping ID
-                RecipeIngredientsMappingId mappingId = new RecipeIngredientsMappingId(
-                        recipe.getRecipeId(),
-                        processedIngredient.getIngredientId()
-                );
-
                 newMapping.setId(mappingId);
                 newMapping.setRecipe(recipe);
-                newMapping.setIngredient(processedIngredient);
-                newMapping.setQuantity(mapping.getQuantity() != null ? mapping.getQuantity() : "");
+                newMapping.setIngredient(ingredient);
+                newMapping.setQuantity(mapping.getQuantity());
 
-                // Save the mapping and add to recipe
-                RecipeIngredientsMapping savedMapping = recipeIngredientsMappingRepository.save(newMapping);
-                recipe.getIngredients().add(savedMapping);
+                recipeIngredientsMappingRepository.save(newMapping);
+                recipe.getIngredients().add(newMapping);
             }
 
-            log.debug("Processed {} ingredients for recipe {}", ingredientMappings.size(), recipe.getRecipeId());
+            log.debug("Processed {} ingredients for recipe", ingredientMappings.size());
         } catch (Exception e) {
-            log.error("Error processing ingredients for recipe {}: {}", recipe.getRecipeId(), e.getMessage(), e);
-            throw e;
-        }
-    }
-
-    private void updateIngredients(Recipe existingRecipe, Set<RecipeIngredientsMapping> updatedMappings) {
-        try {
-            // Create a map of existing mappings by ingredient ID for efficient lookup
-            Map<Integer, RecipeIngredientsMapping> existingMappingsMap = existingRecipe.getIngredients().stream()
-                    .collect(Collectors.toMap(
-                            mapping -> mapping.getIngredient().getIngredientId(),
-                            mapping -> mapping,
-                            (existing, replacement) -> existing // Keep first in case of duplicates
-                    ));
-
-            // Set to collect mappings to keep
-            Set<RecipeIngredientsMapping> mappingsToKeep = new HashSet<>();
-
-            // Process updated mappings
-            for (RecipeIngredientsMapping updatedMapping : updatedMappings) {
-                Ingredient ingredient = updatedMapping.getIngredient();
-
-                // Skip if ingredient is null
-                if (ingredient == null) continue;
-
-                // Process ingredient to ensure it exists in database
-                Ingredient processedIngredient;
-                if (ingredient.getIngredientId() != null) {
-                    // Try to find by ID first
-                    Ingredient existingIngredient = ingredientService.getIngredientById(ingredient.getIngredientId());
-                    if (existingIngredient != null) {
-                        processedIngredient = existingIngredient;
-                    } else {
-                        // Fallback to finding/creating by name
-                        processedIngredient = processIngredientByName(ingredient);
-                    }
-                } else if (ingredient.getName() != null && !ingredient.getName().isEmpty()) {
-                    // Find or create by name
-                    processedIngredient = processIngredientByName(ingredient);
-                } else {
-                    // Skip invalid ingredient
-                    continue;
-                }
-
-                Integer ingredientId = processedIngredient.getIngredientId();
-
-                // Check if we already have a mapping for this ingredient
-                if (existingMappingsMap.containsKey(ingredientId)) {
-                    // Update existing mapping
-                    RecipeIngredientsMapping existingMapping = existingMappingsMap.get(ingredientId);
-                    existingMapping.setQuantity(updatedMapping.getQuantity());
-                    mappingsToKeep.add(existingMapping);
-                    existingMappingsMap.remove(ingredientId); // Remove from map to track what's been processed
-                } else {
-                    // Create new mapping
-                    RecipeIngredientsMapping newMapping = new RecipeIngredientsMapping();
-                    RecipeIngredientsMappingId newId = new RecipeIngredientsMappingId(
-                            existingRecipe.getRecipeId(),
-                            ingredientId
-                    );
-
-                    newMapping.setId(newId);
-                    newMapping.setRecipe(existingRecipe);
-                    newMapping.setIngredient(processedIngredient);
-                    newMapping.setQuantity(updatedMapping.getQuantity() != null ? updatedMapping.getQuantity() : "");
-
-                    // Save and add to keep list
-                    RecipeIngredientsMapping savedMapping = recipeIngredientsMappingRepository.save(newMapping);
-                    mappingsToKeep.add(savedMapping);
-                }
-            }
-
-            // Delete mappings that weren't in the updated set
-            for (RecipeIngredientsMapping mappingToRemove : existingMappingsMap.values()) {
-                recipeIngredientsMappingRepository.delete(mappingToRemove);
-            }
-
-            // Update recipe's ingredient collection
-            existingRecipe.getIngredients().clear();
-            existingRecipe.getIngredients().addAll(mappingsToKeep);
-
-            log.debug("Updated ingredients for recipe {}: {} kept, {} removed",
-                    existingRecipe.getRecipeId(), mappingsToKeep.size(), existingMappingsMap.size());
-        } catch (Exception e) {
-            log.error("Error updating ingredients for recipe {}: {}", existingRecipe.getRecipeId(), e.getMessage(), e);
+            log.error("Error processing ingredients: {}", e.getMessage(), e);
             throw e;
         }
     }
 
     private Ingredient processIngredientByName(Ingredient ingredient) {
-        // Return null if name is null or empty
-        if (ingredient == null || ingredient.getName() == null || ingredient.getName().isEmpty()) {
-            return null;
-        }
-
         // Look up by name first
         return ingredientService.findByName(ingredient.getName())
                 .orElseGet(() -> {
