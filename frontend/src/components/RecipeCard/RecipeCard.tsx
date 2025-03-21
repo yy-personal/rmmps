@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Box from "@mui/material/Box";
 import Card from "@mui/material/Card";
 import CardHeader from "@mui/material/CardHeader";
@@ -7,18 +7,25 @@ import CardContent from "@mui/material/CardContent";
 import CardActions from "@mui/material/CardActions";
 import IconButton from "@mui/material/IconButton";
 import Typography from "@mui/material/Typography";
-
 import InfoIcon from "@mui/icons-material/Info";
 import Chip from "@mui/material/Chip";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import RestaurantIcon from "@mui/icons-material/Restaurant";
 import SignalCellularAltIcon from "@mui/icons-material/SignalCellularAlt";
+import KitchenIcon from "@mui/icons-material/Kitchen";
 import Avatar from "@mui/material/Avatar";
 import RecipeDetail from "../RecipeDetail/RecipeDetail";
+import { useHttpClient } from "hooks/http-hook";
 
 interface MealType {
 	mealTypeId: number;
 	name: string;
+}
+
+interface RecipeIngredient {
+	ingredientId?: number;
+	name: string;
+	quantity: string;
 }
 
 interface User {
@@ -105,6 +112,24 @@ const getUserInitials = (email: string) => {
 function RecipeCard(props: RecipeType) {
 	const [detailOpen, setDetailOpen] = useState(false);
 	const [isHovered, setIsHovered] = useState(false);
+	const [ingredients, setIngredients] = useState<RecipeIngredient[]>([]);
+	const { sendRequest, serverError } = useHttpClient();
+
+	useEffect(() => {
+		// Fetch ingredients for this recipe
+		const fetchIngredients = async () => {
+			try {
+				const responseData = await sendRequest(
+					`${process.env.REACT_APP_BACKEND_URL}/recipes/${props.recipeId}/ingredients`
+				);
+				setIngredients(responseData || []);
+			} catch (err) {
+				console.log(err.message || serverError);
+			}
+		};
+
+		fetchIngredients();
+	}, [props.recipeId, sendRequest, serverError]);
 
 	const handleOpenDetail = () => {
 		setDetailOpen(true);
@@ -212,6 +237,78 @@ function RecipeCard(props: RecipeType) {
 								}}
 							/>
 						</Box>
+
+						{/* Ingredients preview */}
+						{ingredients.length > 0 && (
+							<Box sx={{ mt: 1 }}>
+								<Typography
+									variant="body2"
+									color="text.secondary"
+									sx={{
+										display: "flex",
+										alignItems: "center",
+										gap: 0.5,
+										mb: 0.5,
+										fontWeight: "medium",
+									}}
+								>
+									<KitchenIcon fontSize="small" />
+									Ingredients:
+								</Typography>
+								<Typography
+									variant="body2"
+									color="text.secondary"
+									sx={{
+										display: "-webkit-box",
+										WebkitLineClamp: 2,
+										WebkitBoxOrient: "vertical",
+										overflow: "hidden",
+										textOverflow: "ellipsis",
+									}}
+								>
+									{ingredients
+										.slice(0, 3)
+										.map((ing) => ing.name)
+										.join(", ")}
+									{ingredients.length > 3 &&
+										` and ${ingredients.length - 3} more`}
+								</Typography>
+							</Box>
+						)}
+
+						{/* Meal types */}
+						{props.mealTypes && props.mealTypes.length > 0 && (
+							<Box sx={{ mt: 1 }}>
+								<Typography
+									variant="body2"
+									color="text.secondary"
+									sx={{ mb: 0.5 }}
+								>
+									Meal types:
+								</Typography>
+								<Box
+									sx={{
+										display: "flex",
+										flexWrap: "wrap",
+										gap: 0.5,
+									}}
+								>
+									{props.mealTypes.map((type) => (
+										<Chip
+											key={type.mealTypeId}
+											label={type.name}
+											size="small"
+											color="secondary"
+											variant="outlined"
+											sx={{
+												height: 20,
+												fontSize: "0.7rem",
+											}}
+										/>
+									))}
+								</Box>
+							</Box>
+						)}
 					</CardContent>
 					<CardActions
 						disableSpacing
