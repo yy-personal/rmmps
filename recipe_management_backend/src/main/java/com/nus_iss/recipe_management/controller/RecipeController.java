@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -22,6 +23,8 @@ import java.util.stream.Collectors;
 @RequestMapping("/api/recipes")
 @RequiredArgsConstructor
 @Tag(name = "Recipe Controller")
+@Slf4j
+
 public class RecipeController {
     private final RecipeService recipeService;
     private final IngredientService ingredientService;
@@ -149,7 +152,7 @@ public class RecipeController {
             @ApiResponse(responseCode = "404", description = "Recipe not found")
     })
     @PutMapping("/{id}/ingredients")
-    public ResponseEntity<Recipe> updateRecipeIngredients(
+    public ResponseEntity<?> updateRecipeIngredients(
             @PathVariable Integer id,
             @RequestBody List<RecipeIngredientDTO> ingredientDTOs) {
 
@@ -161,17 +164,20 @@ public class RecipeController {
             Set<RecipeIngredientsMapping> ingredientMappings = new HashSet<>();
 
             for (RecipeIngredientDTO dto : ingredientDTOs) {
+                // Skip invalid DTOs
+                if ((dto.getIngredientId() == null && (dto.getName() == null || dto.getName().isEmpty())) ||
+                        dto.getQuantity() == null) {
+                    continue;
+                }
+
                 Ingredient ingredient = new Ingredient();
 
                 // If ingredientId is provided, use it
                 if (dto.getIngredientId() != null) {
                     ingredient.setIngredientId(dto.getIngredientId());
-                } else if (dto.getName() != null && !dto.getName().isEmpty()) {
-                    // Otherwise use the name to find or create
-                    ingredient.setName(dto.getName());
                 } else {
-                    // Skip if neither id nor name is provided
-                    continue;
+                    // Otherwise use the name
+                    ingredient.setName(dto.getName());
                 }
 
                 // Create the mapping
@@ -187,14 +193,30 @@ public class RecipeController {
 
             // Update the recipe
             Recipe updatedRecipe = recipeService.updateRecipe(id, recipe);
-            return ResponseEntity.ok(updatedRecipe);
+
+            // Map the result to DTOs for response
+            List<RecipeIngredientDTO> resultDTOs = updatedRecipe.getIngredients().stream()
+                    .map(mapping -> new RecipeIngredientDTO(
+                            mapping.getIngredient().getIngredientId(),
+                            mapping.getIngredient().getName(),
+                            mapping.getQuantity()
+                    ))
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(resultDTOs);
 
         } catch (AccessDeniedException ex) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            log.error("Access denied updating recipe ingredients: {}", ex.getMessage());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "You do not have permission to update this recipe"));
         } catch (RecipeNotFoundException ex) {
-            return ResponseEntity.notFound().build();
+            log.error("Recipe not found: {}", ex.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", ex.getMessage()));
         } catch (Exception ex) {
-            return ResponseEntity.internalServerError().build();
+            log.error("Error updating recipe ingredients: {}", ex.getMessage(), ex);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "An error occurred while updating ingredients: " + ex.getMessage()));
         }
     }
 }
