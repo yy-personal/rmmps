@@ -1,33 +1,40 @@
 package com.nus_iss.recipe_management.model;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "RecipeIngredients")
+@Table(name = "recipe_ingredients")
 @Getter @Setter
-@NoArgsConstructor @AllArgsConstructor
+@NoArgsConstructor
 public class RecipeIngredientsMapping {
-
     @EmbeddedId
-    private RecipeIngredientsMappingId id;
+    private RecipeIngredientsMappingId id = new RecipeIngredientsMappingId();
 
-    @ManyToOne
-    @MapsId("recipeId")  // Maps to recipeId in RecipeIngredientsId
-    @JoinColumn(name = "recipeId", nullable = false)
+    @ManyToOne(fetch = FetchType.EAGER)
+    @MapsId("recipeId")
+    @JoinColumn(name = "recipe_id", nullable = false)
     private Recipe recipe;
 
-    @ManyToOne
-    @MapsId("ingredientId")  // Maps to ingredientId in RecipeIngredientsId
-    @JoinColumn(name = "ingredientId", nullable = false)
+    @ManyToOne(fetch = FetchType.EAGER)
+    @MapsId("ingredientId")
+    @JoinColumn(name = "ingredient_id", nullable = false)
     private Ingredient ingredient;
 
     @Column(nullable = false)
-    private String quantity;
+    private String quantity = "1 unit";
 
-    // To prevent recursive get in JSON response
+    public RecipeIngredientsMapping(Recipe recipe, Ingredient ingredient, String quantity) {
+        this.recipe = recipe;
+        this.ingredient = ingredient;
+        this.quantity = (quantity != null && !quantity.trim().isEmpty()) ? quantity : "1 unit";
+        this.id = new RecipeIngredientsMappingId(
+                recipe != null ? recipe.getRecipeId() : null,
+                ingredient != null ? ingredient.getIngredientId() : null
+        );
+    }
+
     @JsonIgnore
     public Recipe getRecipe() {
         return recipe;

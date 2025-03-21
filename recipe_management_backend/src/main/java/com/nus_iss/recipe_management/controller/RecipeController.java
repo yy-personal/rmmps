@@ -1,10 +1,12 @@
 package com.nus_iss.recipe_management.controller;
 
+import com.nus_iss.recipe_management.dto.RecipeDTO;
 import com.nus_iss.recipe_management.dto.RecipeIngredientDTO;
 import com.nus_iss.recipe_management.exception.RecipeNotFoundException;
 import com.nus_iss.recipe_management.model.*;
 import com.nus_iss.recipe_management.service.IngredientService;
 import com.nus_iss.recipe_management.service.RecipeService;
+import com.nus_iss.recipe_management.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -13,6 +15,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
@@ -25,6 +31,7 @@ import java.util.stream.Collectors;
 public class RecipeController {
     private final RecipeService recipeService;
     private final IngredientService ingredientService;
+    private final UserService userService;
 
     @Operation(summary = "Create a new recipe")
     @ApiResponses({
@@ -33,10 +40,16 @@ public class RecipeController {
             @ApiResponse(responseCode = "500", description = "Server error")
     })
     @PostMapping
-    public ResponseEntity<Recipe> createRecipe(@RequestBody Recipe recipe) {
+    public ResponseEntity<Recipe> createRecipe(@RequestBody RecipeDTO recipeDTO) {
         ResponseEntity<Recipe> response;
         try {
-            Recipe createdRecipe = recipeService.createRecipe(recipe);
+            // Get authenticated user
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String username = ((UserDetails) authentication.getPrincipal()).getUsername();
+            User user = userService.findByEmail(username)
+                    .orElseThrow(() -> new AuthenticationCredentialsNotFoundException("User not found"));
+
+            Recipe createdRecipe = recipeService.createRecipeWithIngredients(recipeDTO, user);
             response = ResponseEntity.ok(createdRecipe);
         } catch (AccessDeniedException ex) {
             response = ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
@@ -80,10 +93,10 @@ public class RecipeController {
             @ApiResponse(responseCode = "404", description = "Recipe not found")
     })
     @PutMapping("/{id}")
-    public ResponseEntity<Recipe> updateRecipeById(@PathVariable Integer id, @RequestBody Recipe recipeDetails) {
+    public ResponseEntity<Recipe> updateRecipeById(@PathVariable Integer id, @RequestBody RecipeDTO recipeDTO) {
         ResponseEntity<Recipe> response;
         try {
-            Recipe updatedRecipe = recipeService.updateRecipe(id, recipeDetails);
+            Recipe updatedRecipe = recipeService.updateRecipeWithIngredients(id, recipeDTO);
             response = ResponseEntity.ok(updatedRecipe);
         } catch (AccessDeniedException ex) {
             response = ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
@@ -154,41 +167,13 @@ public class RecipeController {
             @RequestBody List<RecipeIngredientDTO> ingredientDTOs) {
 
         try {
-            // Get the existing recipe
-            Recipe recipe = recipeService.getRecipeById(id);
+            // Create a RecipeDTO with only ingredients set
+            RecipeDTO recipeDTO = new RecipeDTO();
+            recipeDTO.setIngredients(ingredientDTOs);
 
-            // Create a set of ingredient mappings from the DTOs
-            Set<RecipeIngredientsMapping> ingredientMappings = new HashSet<>();
-
-            for (RecipeIngredientDTO dto : ingredientDTOs) {
-                Ingredient ingredient = new Ingredient();
-
-                // If ingredientId is provided, use it
-                if (dto.getIngredientId() != null) {
-                    ingredient.setIngredientId(dto.getIngredientId());
-                } else if (dto.getName() != null && !dto.getName().isEmpty()) {
-                    // Otherwise use the name to find or create
-                    ingredient.setName(dto.getName());
-                } else {
-                    // Skip if neither id nor name is provided
-                    continue;
-                }
-
-                // Create the mapping
-                RecipeIngredientsMapping mapping = new RecipeIngredientsMapping();
-                mapping.setIngredient(ingredient);
-                mapping.setQuantity(dto.getQuantity());
-
-                ingredientMappings.add(mapping);
-            }
-
-            // Set the ingredients on the recipe
-            recipe.setIngredients(ingredientMappings);
-
-            // Update the recipe
-            Recipe updatedRecipe = recipeService.updateRecipe(id, recipe);
+            // Update using the existing method
+            Recipe updatedRecipe = recipeService.updateRecipeWithIngredients(id, recipeDTO);
             return ResponseEntity.ok(updatedRecipe);
-
         } catch (AccessDeniedException ex) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         } catch (RecipeNotFoundException ex) {
