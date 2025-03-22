@@ -25,6 +25,9 @@ import DateRangeIcon from "@mui/icons-material/DateRange";
 import SignalCellularAltIcon from "@mui/icons-material/SignalCellularAlt";
 import Chip from "@mui/material/Chip";
 import LocalDiningIcon from "@mui/icons-material/LocalDining";
+import KitchenIcon from "@mui/icons-material/Kitchen";
+import DeleteIcon from "@mui/icons-material/Delete";
+import AddIcon from "@mui/icons-material/Add";
 import Checkbox from "@mui/material/Checkbox";
 import ListItemText from "@mui/material/ListItemText";
 import Autocomplete from "@mui/material/Autocomplete";
@@ -40,6 +43,12 @@ interface User {
 interface MealType {
 	mealTypeId: number;
 	name: string;
+}
+
+interface RecipeIngredient {
+	ingredientId?: number;
+	name: string;
+	quantity: string;
 }
 
 interface RecipeDetailProps {
@@ -72,6 +81,8 @@ function RecipeDetail({ recipeId, open, onClose }: RecipeDetailProps) {
 		[]
 	);
 	const [selectedMealTypes, setSelectedMealTypes] = useState<number[]>([]);
+	const [ingredients, setIngredients] = useState<RecipeIngredient[]>([]);
+	const [loadingIngredients, setLoadingIngredients] = useState(false);
 
 	// Fetch available meal types
 	useEffect(() => {
@@ -89,6 +100,7 @@ function RecipeDetail({ recipeId, open, onClose }: RecipeDetailProps) {
 		fetchMealTypes();
 	}, [sendRequest, serverError]);
 
+	// Fetch recipe details
 	useEffect(() => {
 		const fetchRecipe = async () => {
 			if (!recipeId) return;
@@ -122,6 +134,9 @@ function RecipeDetail({ recipeId, open, onClose }: RecipeDetailProps) {
 				} else {
 					setSelectedMealTypes([]);
 				}
+
+				// Fetch ingredients for the recipe
+				fetchIngredients(recipeId);
 			} catch (err) {
 				console.log(err.message || serverError);
 			}
@@ -132,6 +147,21 @@ function RecipeDetail({ recipeId, open, onClose }: RecipeDetailProps) {
 			setIsEditing(false); // Reset editing mode when opening modal
 		}
 	}, [recipeId, open, sendRequest, serverError]);
+
+	// Fetch ingredients
+	const fetchIngredients = async (recipeId: number) => {
+		setLoadingIngredients(true);
+		try {
+			const responseData = await sendRequest(
+				`${process.env.REACT_APP_BACKEND_URL}/recipes/${recipeId}/ingredients`
+			);
+			setIngredients(responseData || []);
+		} catch (err) {
+			console.log(err.message || serverError);
+		} finally {
+			setLoadingIngredients(false);
+		}
+	};
 
 	const handleChange = (
 		e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -174,6 +204,32 @@ function RecipeDetail({ recipeId, open, onClose }: RecipeDetailProps) {
 		});
 	};
 
+	// Handle ingredient changes
+	const handleIngredientChange = (
+		index: number,
+		field: keyof RecipeIngredient,
+		value: string
+	) => {
+		const updatedIngredients = [...ingredients];
+		updatedIngredients[index] = {
+			...updatedIngredients[index],
+			[field]: value,
+		};
+		setIngredients(updatedIngredients);
+	};
+
+	// Add a new ingredient field
+	const handleAddIngredient = () => {
+		setIngredients([...ingredients, { name: "", quantity: "" }]);
+	};
+
+	// Remove an ingredient field
+	const handleRemoveIngredient = (index: number) => {
+		const updatedIngredients = [...ingredients];
+		updatedIngredients.splice(index, 1);
+		setIngredients(updatedIngredients);
+	};
+
 	const handleStartEditing = () => {
 		setIsEditing(true);
 	};
@@ -199,6 +255,11 @@ function RecipeDetail({ recipeId, open, onClose }: RecipeDetailProps) {
 			} else {
 				setSelectedMealTypes([]);
 			}
+
+			// Reset ingredients by re-fetching them
+			if (recipe.recipeId) {
+				fetchIngredients(recipe.recipeId);
+			}
 		}
 		setIsEditing(false);
 	};
@@ -208,6 +269,11 @@ function RecipeDetail({ recipeId, open, onClose }: RecipeDetailProps) {
 
 		setIsSaving(true);
 		try {
+			// Filter out empty ingredients
+			const validIngredients = ingredients.filter(
+				(ing) => ing.name.trim() !== "" && ing.quantity.trim() !== ""
+			);
+
 			// Prepare data for update
 			const updateData = {
 				...recipe,
@@ -217,7 +283,8 @@ function RecipeDetail({ recipeId, open, onClose }: RecipeDetailProps) {
 				difficultyLevel: editFormState.difficultyLevel,
 				servings: editFormState.servings,
 				steps: editFormState.steps,
-				mealTypes: selectedMealTypes.map((id) => ({ mealTypeId: id })),
+				mealTypeIds: selectedMealTypes,
+				ingredients: validIngredients,
 			};
 
 			// Send update request
@@ -234,6 +301,9 @@ function RecipeDetail({ recipeId, open, onClose }: RecipeDetailProps) {
 			// Update local recipe state with response
 			setRecipe(responseData);
 			setIsEditing(false);
+
+			// Refresh the ingredients
+			fetchIngredients(recipeId);
 		} catch (err) {
 			console.log(err.message || serverError);
 		} finally {
@@ -273,7 +343,7 @@ function RecipeDetail({ recipeId, open, onClose }: RecipeDetailProps) {
 					top: "50%",
 					left: "50%",
 					transform: "translate(-50%, -50%)",
-					width: { xs: "90%", sm: "550px" },
+					width: { xs: "90%", sm: "550px", md: "650px" },
 					maxHeight: "85vh",
 					borderRadius: 2,
 					boxShadow: 24,
@@ -624,6 +694,188 @@ function RecipeDetail({ recipeId, open, onClose }: RecipeDetailProps) {
 												color="text.secondary"
 											>
 												No meal types specified
+											</Typography>
+										)}
+									</Box>
+								)}
+							</Box>
+
+							{/* Ingredients Section */}
+							<Box sx={{ mb: 2 }}>
+								<Stack
+									direction="row"
+									alignItems="center"
+									spacing={1}
+									sx={{ mb: 1 }}
+								>
+									<KitchenIcon sx={{ color: "#2196f3" }} />
+									<Typography
+										variant="subtitle1"
+										fontWeight="medium"
+									>
+										Ingredients
+									</Typography>
+								</Stack>
+
+								{loadingIngredients ? (
+									<Box
+										sx={{
+											display: "flex",
+											justifyContent: "center",
+											my: 2,
+										}}
+									>
+										<CircularProgress size={24} />
+									</Box>
+								) : isEditing ? (
+									<Paper
+										variant="outlined"
+										sx={{ p: 2, mb: 2 }}
+									>
+										{ingredients.map(
+											(ingredient, index) => (
+												<Grid
+													container
+													spacing={2}
+													key={index}
+													sx={{ mb: 1 }}
+												>
+													<Grid item xs={5}>
+														<TextField
+															fullWidth
+															label="Ingredient Name"
+															value={
+																ingredient.name
+															}
+															onChange={(e) =>
+																handleIngredientChange(
+																	index,
+																	"name",
+																	e.target
+																		.value
+																)
+															}
+															size="small"
+															required
+														/>
+													</Grid>
+													<Grid item xs={5}>
+														<TextField
+															fullWidth
+															label="Quantity"
+															value={
+																ingredient.quantity
+															}
+															onChange={(e) =>
+																handleIngredientChange(
+																	index,
+																	"quantity",
+																	e.target
+																		.value
+																)
+															}
+															size="small"
+															required
+														/>
+													</Grid>
+													<Grid
+														item
+														xs={2}
+														sx={{
+															display: "flex",
+															alignItems:
+																"center",
+														}}
+													>
+														<IconButton
+															onClick={() =>
+																handleRemoveIngredient(
+																	index
+																)
+															}
+															color="error"
+															size="small"
+														>
+															<DeleteIcon />
+														</IconButton>
+													</Grid>
+													{index <
+														ingredients.length -
+															1 && (
+														<Grid item xs={12}>
+															<Divider
+																sx={{ my: 1 }}
+															/>
+														</Grid>
+													)}
+												</Grid>
+											)
+										)}
+										<Button
+											startIcon={<AddIcon />}
+											onClick={handleAddIngredient}
+											variant="outlined"
+											size="small"
+											sx={{ mt: 1 }}
+										>
+											Add Ingredient
+										</Button>
+									</Paper>
+								) : (
+									<Box sx={{ mb: 3 }}>
+										{ingredients &&
+										ingredients.length > 0 ? (
+											<Paper
+												variant="outlined"
+												sx={{ p: 2 }}
+											>
+												<Grid container spacing={1}>
+													{ingredients.map(
+														(ingredient, index) => (
+															<Grid
+																item
+																xs={12}
+																key={index}
+															>
+																<Stack
+																	direction="row"
+																	justifyContent="space-between"
+																	alignItems="center"
+																	sx={{
+																		borderBottom:
+																			index <
+																			ingredients.length -
+																				1
+																				? "1px solid #eee"
+																				: "none",
+																		py: 1,
+																	}}
+																>
+																	<Typography variant="body1">
+																		{
+																			ingredient.name
+																		}
+																	</Typography>
+																	<Typography
+																		variant="body2"
+																		color="text.secondary"
+																	>
+																		{
+																			ingredient.quantity
+																		}
+																	</Typography>
+																</Stack>
+															</Grid>
+														)
+													)}
+												</Grid>
+											</Paper>
+										) : (
+											<Typography
+												variant="body2"
+												color="text.secondary"
+											>
+												No ingredients specified
 											</Typography>
 										)}
 									</Box>
