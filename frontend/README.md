@@ -1,12 +1,44 @@
-# RMMPS - Frontend service
+# RMMPS - Frontend Service
 
-The frontend service for RMMPS.
+The frontend service for the Recipe Management and Meal Planning System built with React, TypeScript, and Material-UI.
 
-## Running the app locally
+## Features
+
+- **Recipe Management**: Create, view, edit, and delete recipes
+- **User Authentication**: JWT-based authentication system with access and refresh tokens
+- **Responsive Design**: Fully responsive UI optimized for desktop, tablet, and mobile devices
+- **Material UI**: Modern and clean user interface using Material-UI components
+- **Form Validation**: Client-side validation for all forms
+
+## Project Structure
+
+```
+frontend/
+├── public/                # Static files
+├── src/                   # Source code
+│   ├── components/        # React components
+│   │   ├── Header/        # Application header
+│   │   ├── Login/         # Authentication components
+│   │   ├── RecipeCard/    # Recipe card component
+│   │   ├── RecipeDetail/  # Recipe detail modal
+│   │   ├── RecipeForm/    # Recipe creation/editing form
+│   │   └── RecipeList/    # Recipe list/grid view
+│   ├── contexts/          # React contexts
+│   │   └── auth-context.ts # Authentication context
+│   ├── hooks/             # Custom React hooks
+│   │   └── http-hook.ts   # HTTP request hook
+│   ├── templates/         # Template components
+│   ├── App.tsx            # Main application component
+│   └── index.tsx          # Application entry point
+└── package.json           # Dependencies and scripts
+```
+
+## Running the App Locally
 
 ### Pre-requisites
 
-- Node: Install at https://nodejs.org/en/download
+- Node.js: Install from https://nodejs.org/en/download (version 18+ recommended)
+- Backend service running (see main project README)
 
 ### Configuration
 
@@ -30,100 +62,68 @@ npm i
 npm start
 ```
 
-## Styling
+## Key Features Implementation
 
-In this project, [MaterialUI](https://mui.com/) is chosen for styling.
+### Authentication
 
-## Development Guide
+Authentication is implemented using JWT tokens with the Context API. The system uses:
+- Access tokens for API authorization
+- Refresh tokens for obtaining new access tokens
+- Automatic token refresh when access tokens expire
+
+See `src/contexts/auth-context.ts` and `src/App.tsx` for implementation details.
 
 ### Making HTTP Requests
 
-For convenience, the custom React hook 'useHttpClient' is defined in hooks/http-hook.ts. You may refer to the following example on how to use the hook.
+For convenient HTTP requests, use the custom React hook `useHttpClient` defined in `hooks/http-hook.ts`:
 
 ```tsx
-import Box from "@mui/material/Box";
-import { useEffect, useState } from "react";
-
-// Remember to import the custom hook
 import { useHttpClient } from "hooks/http-hook";
 
-interface DummyDataType {
-  name: string;
-  age: number;
-  isMarried: boolean;
-}
-
-function HttpRequestTemplate() {
-  // Only sendRequest is required to send requests, the other 3 are optional
+function MyComponent() {
   const { isLoading, sendRequest, serverError, statusCode } = useHttpClient();
-  const [dummyData, setDummyData] = useState<DummyDataType>();
-
+  
+  // Example GET request
   useEffect(() => {
-    // Recommended to use async-await paradigm. First, wrap the sendRequest call in an async function.
-    const createDummyData = async () => {
+    const fetchData = async () => {
       try {
-        // Send the request by providing the URL, request type, request body, and headers
-        // Only the URL is required, the other 3 are optional
-        // Make sure to wrap the request within a try block
         const responseData = await sendRequest(
-          `${process.env.REACT_APP_BACKEND_URL}/dummy-route`,
-          "POST",
-          JSON.stringify({
-            name: "dummy name",
-            age: 25,
-            isMarried: true,
-          }),
-          {
-            "Content-Type": "application/json",
-          }
+          `${process.env.REACT_APP_BACKEND_URL}/recipes`
         );
-
-        setDummyData(responseData);
+        // Handle response data
       } catch (err) {
-        // In case of an error, you may use serverError and/or statusCode for logging or displaying to users
         console.log(
-          serverError ||
-            err.message ||
-            `Unknown error occurred. Status Code: ${statusCode}`
+          serverError || err.message || `Unknown error: ${statusCode}`
         );
       }
     };
-    createDummyData();
-  }, [setDummyData, sendRequest, serverError, statusCode]);
-
-  // Do something while the HTTP request is being handled
+    fetchData();
+  }, [sendRequest, serverError, statusCode]);
+  
+  // Handle loading state
   if (isLoading) {
-    return <Box>Loading data. Please hold on...</Box>;
+    return <div>Loading...</div>;
   }
-
-  // Handle the case where the data couln't be loaded
-  if (dummyData === undefined) {
-    return <Box>No data found. Please try again later...</Box>;
-  }
-
+  
+  // Component rendering
   return (
-    <Box>{`Name: ${dummyData.name}, Age: ${dummyData.age}, Married: ${
-      dummyData.isMarried ? "Yes" : "No"
-    }`}</Box>
+    // Your component
   );
 }
-
-export default HttpRequestTemplate;
 ```
 
-### Responsiveness (MaterialUI Version)
+### Styling with Material-UI
 
-Ensuring a responsive design is crucial for a seamless user experience across different screen sizes. Material UI provides built-in breakpoints, the _sx_ prop, and the _useMediaQuery_ hook to make components adapt dynamically.
+This project uses [Material-UI](https://mui.com/) (version 6.4.3) for styling. Key styling approaches:
 
-#### Using the sx Prop with Breakpoints
+1. **Component Styling**: Use the `sx` prop for component-specific styling
+2. **Theme Customization**: App-wide theming defined in the Material-UI theme
+3. **Responsive Design**: Use breakpoints for responsive layouts
 
-Material UI allows you to specify styles for different screen sizes using its breakpoints system _(xs, sm, md, lg, xl)_.
-
-**Example: Responsive Grid Layout**
+#### Responsive Design Example
 
 ```tsx
 import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
 
 const ResponsiveComponent = () => {
@@ -132,27 +132,82 @@ const ResponsiveComponent = () => {
       sx={{
         display: "flex",
         flexDirection: { xs: "column", md: "row" }, // Stack on small screens, row on medium+
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 2,
-        p: 3,
+        p: { xs: 2, sm: 3, md: 4 }, // Different padding based on screen size
       }}
     >
       <Typography
         variant="h4"
-        sx={{ fontSize: { xs: "1.5rem", md: "2rem" } }} // Adjust font size for screens
+        sx={{ fontSize: { xs: "1.5rem", md: "2rem" } }} // Responsive font sizes
       >
-        Responsive Design
+        Responsive Content
       </Typography>
-      <Button
-        variant="contained"
-        sx={{ width: { xs: "100%", sm: "auto" } }} // Full width on small screens
-      >
-        Click Me
-      </Button>
     </Box>
   );
 };
-
-export default ResponsiveComponent;
 ```
+
+### Form Validation
+
+Form validation is implemented directly in components. See `RecipeForm.tsx` for examples of form validation implementation.
+
+## Component Usage Guidelines
+
+### RecipeCard
+
+The `RecipeCard` component displays a recipe preview with basic information:
+
+```tsx
+import RecipeCard from "components/RecipeCard/RecipeCard";
+
+// Usage
+<RecipeCard
+  recipeId={1}
+  title="Recipe Title"
+  user={{ userId: 1, email: "user@example.com" }}
+  preparationTime={15}
+  cookingTime={30}
+  difficultyLevel="MEDIUM"
+  servings={4}
+  steps="1. Step one\n2. Step two"
+  mealTypes={[{ mealTypeId: 1, name: "Breakfast" }]}
+/>
+```
+
+### RecipeDetail
+
+The `RecipeDetail` component shows a detailed view of a recipe:
+
+```tsx
+import RecipeDetail from "components/RecipeDetail/RecipeDetail";
+
+// Usage
+<RecipeDetail
+  recipeId={1}
+  open={true}
+  onClose={() => setOpen(false)}
+/>
+```
+
+## Testing
+
+To run tests:
+
+```bash
+npm test
+```
+
+## Troubleshooting
+
+### Common Issues
+
+1. **API Connection Problems**:
+   - Verify backend is running
+   - Check that `.env` has correct API URL
+   
+2. **Authentication Issues**:
+   - Clear local storage
+   - Check expiration of JWT tokens
+   
+3. **Rendering Problems**:
+   - Check console for React errors
+   - Verify component props are correct
