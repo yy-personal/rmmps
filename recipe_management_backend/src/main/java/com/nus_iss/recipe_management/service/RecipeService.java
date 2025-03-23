@@ -13,4 +13,7 @@ public interface RecipeService {
     Recipe updateRecipe(Integer id, Recipe recipe) throws RecipeNotFoundException;
     Recipe updateRecipeWithIngredients(Integer id, RecipeDTO recipeDTO) throws RecipeNotFoundException;
     void deleteRecipe(Integer id);
+    void addDietaryRestrictionsToRecipe(Integer recipeId, List<Integer> dietaryRestrictionIds);
+    void removeDietaryRestrictionsFromRecipe(Integer recipeId, List<Integer> dietaryRestrictionIds);
+    List<Recipe> getMatchingDietaryRestrictionsRecipes(Integer userId);
 }

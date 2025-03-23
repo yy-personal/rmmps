@@ -58,8 +58,7 @@ public class Recipe {
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
-    // To prevent recursive get in JSON response
-    @JsonIgnore
+    @JsonIgnore // To prevent recursive get in JSON response
     public Set<MealPlanRecipeMapping> getMealPlans() {
         return mealPlans;
     }

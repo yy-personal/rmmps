@@ -1,5 +1,6 @@
 package com.nus_iss.recipe_management.controller;
 
+import com.nus_iss.recipe_management.dto.UserDTO;
 import com.nus_iss.recipe_management.model.User;
 import com.nus_iss.recipe_management.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -22,8 +23,8 @@ public class UserController {
     @Operation(summary = "Create a new user")
     @ApiResponse(responseCode = "200", description = "User created successfully")
     @PostMapping
-    public ResponseEntity<User> createUser(@RequestBody User user) {
-        User createdUser = userService.createUser(user);
+    public ResponseEntity<User> createUser(@RequestBody UserDTO userDTO) {
+        User createdUser = userService.createUser(userDTO);
         return ResponseEntity.ok(createdUser);
     }
 
@@ -51,6 +52,26 @@ public class UserController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteUser(@PathVariable Integer id) {
         userService.deleteUser(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "Add Dietary Restriction To User")
+    @ApiResponse(responseCode = "200", description = "Dietary restriction added successfully")
+    @PostMapping("/{userId}/dietary-restrictions")
+    public ResponseEntity<User> addDietaryRestriction(
+            @PathVariable Integer userId,
+            @RequestParam Integer dietaryRestrictionId) {
+        User user = userService.addDietaryRestriction(userId, dietaryRestrictionId);
+        return ResponseEntity.ok(user);
+    }
+
+    @Operation(summary = "Remove Dietary Restriction From User")
+    @ApiResponse(responseCode = "200", description = "Dietary restriction removed successfully")
+    @DeleteMapping("/{userId}/dietary-restrictions")
+    public ResponseEntity<Void> removeDietaryRestriction(
+            @PathVariable Integer userId,
+            @RequestParam Integer dietaryRestrictionId) {
+        userService.removeDietaryRestriction(userId, dietaryRestrictionId);
         return ResponseEntity.noContent().build();
     }
 }
