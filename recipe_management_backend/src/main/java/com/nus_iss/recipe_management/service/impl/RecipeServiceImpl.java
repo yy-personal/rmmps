@@ -19,6 +19,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -32,7 +33,9 @@ public class RecipeServiceImpl implements RecipeService {
     private final MealTypeRepository mealTypeRepository;
     private final IngredientService ingredientService;
     private final IngredientRepository ingredientRepository;
+    private final DietaryRestrictionRepository dietaryRestrictionRepository;
     private final RecipeIngredientsMappingRepository recipeIngredientsMappingRepository;
+    private final RecipeDietaryRestrictionMappingRepository recipeDietaryRestrictionMappingRepository;
 
     @Override
     @Transactional
@@ -366,5 +369,74 @@ public class RecipeServiceImpl implements RecipeService {
             log.error("Error processing meal types: {}", e.getMessage(), e);
             throw e;
         }
+    }
+
+
+    /******************************** Modify Recipe Dietary Restrictions ********************************/
+    @Transactional
+    public void addDietaryRestrictionsToRecipe(Integer recipeId, List<Integer> dietaryRestrictionIds) {
+        Recipe recipe = recipeRepository.findById(recipeId)
+                .orElseThrow(() -> new RecipeNotFoundException("Recipe not found"));
+
+        // 🔐 Get the currently authenticated user's ID
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = ((UserDetails) authentication.getPrincipal()).getUsername();
+        User user = userService.findByEmail(username).orElseThrow(() ->
+                new AuthenticationCredentialsNotFoundException("Value not present"));
+        Integer userId = user.getUserId();
+
+        // Check if the authenticated user owns the recipe
+        if (!recipe.getUser().getUserId().equals(userId)) {
+            throw new AccessDeniedException("You do not have permission to modify this recipe.");
+        }
+
+        List<DietaryRestriction> restrictions = dietaryRestrictionRepository.findAllById(dietaryRestrictionIds);
+        if (restrictions.size() != dietaryRestrictionIds.size()) {
+            throw new RuntimeException("Some dietary restrictions not found");
+        }
+
+        List<RecipeDietaryRestrictionMapping> mappings = restrictions.stream()
+                .map(restriction -> new RecipeDietaryRestrictionMapping(
+                        new RecipeDietaryRestrictionMappingId(recipeId, restriction.getDietaryRestrictionId()),
+                        recipe,
+                        restriction,
+                        LocalDateTime.now()
+                ))
+                .toList();
+
+        recipeDietaryRestrictionMappingRepository.saveAll(mappings);
+    }
+
+    @Transactional
+    public void removeDietaryRestrictionsFromRecipe(Integer recipeId, List<Integer> dietaryRestrictionIds) {
+        Recipe recipe = recipeRepository.findById(recipeId)
+                .orElseThrow(() -> new RecipeNotFoundException("Recipe not found"));
+
+        // 🔐 Get the currently authenticated user's ID
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = ((UserDetails) authentication.getPrincipal()).getUsername();
+        User user = userService.findByEmail(username).orElseThrow(() ->
+                new AuthenticationCredentialsNotFoundException("Value not present"));
+        Integer userId = user.getUserId();
+
+        // Check if the authenticated user owns the recipe
+        if (!recipe.getUser().getUserId().equals(userId)) {
+            throw new AccessDeniedException("You do not have permission to modify this recipe.");
+        }
+
+        List<RecipeDietaryRestrictionMapping> mappingsToDelete =
+                recipeDietaryRestrictionMappingRepository.findByIdRecipeIdAndIdDietaryRestrictionIdIn(recipeId, dietaryRestrictionIds);
+
+        if (mappingsToDelete.isEmpty()) {
+            throw new RuntimeException("No matching dietary restrictions found for deletion");
+        }
+
+        recipeDietaryRestrictionMappingRepository.deleteAll(mappingsToDelete);
+    }
+
+    // Recipe Recommendation (Based on dietary restrictions)
+    @Override
+    public List<Recipe> getMatchingDietaryRestrictionsRecipes(Integer userId) {
+        return recipeRepository.findRecommendedRecipes(userId);
     }
 }

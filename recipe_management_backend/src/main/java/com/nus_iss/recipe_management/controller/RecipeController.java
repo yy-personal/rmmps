@@ -182,4 +182,24 @@ public class RecipeController {
             return ResponseEntity.internalServerError().build();
         }
     }
+
+    @Operation(summary = "Add Dietary Restrictions to a Recipe")
+    @ApiResponse(responseCode = "200", description = "Dietary restrictions added successfully")
+    @PostMapping("/{recipeId}/dietary-restrictions")
+    public ResponseEntity<Void> addDietaryRestrictionsToRecipe(
+            @PathVariable Integer recipeId,
+            @RequestBody List<Integer> dietaryRestrictionIds) {
+        recipeService.addDietaryRestrictionsToRecipe(recipeId, dietaryRestrictionIds);
+        return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "Remove Dietary Restrictions from a Recipe")
+    @ApiResponse(responseCode = "204", description = "Dietary restrictions removed successfully")
+    @DeleteMapping("/{recipeId}/dietary-restrictions")
+    public ResponseEntity<Void> removeDietaryRestrictionFromRecipe(
+            @PathVariable Integer recipeId,
+            @RequestBody List<Integer> dietaryRestrictionIds) {
+        recipeService.removeDietaryRestrictionsFromRecipe(recipeId, dietaryRestrictionIds);
+        return ResponseEntity.noContent().build();
+    }
 }
