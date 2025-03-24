@@ -42,7 +42,7 @@ public class SecurityConfig {
                     return config;
                 }))
                 .csrf(csrf -> csrf
-                        .ignoringRequestMatchers("/api/**")  // Ignore CSRF for all API endpoints
+                        .ignoringRequestMatchers("/api/**")
                 )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
@@ -60,6 +60,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/recipes").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/recipes/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/recipes").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/recipes/search").permitAll()
                         .requestMatchers(HttpMethod.PUT, "/api/recipes/**").hasAnyRole("USER", "ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/recipes/**").hasAnyRole("USER", "ADMIN")
                         .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
