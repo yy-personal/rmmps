@@ -5,6 +5,7 @@ import com.nus_iss.recipe_management.model.*;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 public interface RecipeRepository extends JpaRepository<Recipe, Integer> {
@@ -25,4 +26,6 @@ public interface RecipeRepository extends JpaRepository<Recipe, Integer> {
         )
     """)
     List<Recipe> findRecommendedRecipes(@Param("userId") Integer userId);
+
+    List<Recipe> findByCreatedAtAfter(LocalDateTime dateTime);
 }
