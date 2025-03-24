@@ -11,7 +11,7 @@ import java.util.List;
 @AllArgsConstructor
 public class RecipeSearchDTO {
     private String title;
-    private String ingredient;
+    private List<Integer> ingredientIds;
     private String difficultyLevel;
     private Integer maxTotalTime; // prep + cooking time combined
     private Integer minTotalTime;

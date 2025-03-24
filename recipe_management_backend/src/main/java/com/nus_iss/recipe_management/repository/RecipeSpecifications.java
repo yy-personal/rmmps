@@ -69,15 +69,13 @@ public class RecipeSpecifications {
                 ));
             }
 
-            // Ingredient search
-            if (criteria.getIngredient() != null && !criteria.getIngredient().trim().isEmpty()) {
+            // Ingredient search by IDs
+            if (criteria.getIngredientIds() != null && !criteria.getIngredientIds().isEmpty()) {
                 Join<Object, Object> ingredientsJoin = root.join("ingredients", JoinType.LEFT);
                 Join<Object, Object> ingredientJoin = ingredientsJoin.join("ingredient", JoinType.LEFT);
 
-                predicates.add(criteriaBuilder.like(
-                        criteriaBuilder.lower(ingredientJoin.get("name")),
-                        "%" + criteria.getIngredient().toLowerCase() + "%"
-                ));
+                // Find recipes that contain ANY of the selected ingredients
+                predicates.add(ingredientJoin.get("ingredientId").in(criteria.getIngredientIds()));
             }
 
             // Meal type search
