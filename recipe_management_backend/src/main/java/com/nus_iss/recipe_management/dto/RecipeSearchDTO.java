@@ -15,6 +15,7 @@ public class RecipeSearchDTO {
     private String difficultyLevel;
     private Integer maxTotalTime; // prep + cooking time combined
     private Integer minTotalTime;
+    private String username; // For searching by username of recipe creator
     private Integer userId; // owner
     private List<Integer> mealTypeIds; // cuisine types
     private Integer servings;

@@ -53,11 +53,19 @@ public class RecipeSpecifications {
                 ));
             }
 
-            // User/Owner search
+            // User/Owner search by ID
             if (criteria.getUserId() != null) {
                 predicates.add(criteriaBuilder.equal(
                         root.get("user").get("userId"),
                         criteria.getUserId()
+                ));
+            }
+
+            // User/Owner search by username/email
+            if (criteria.getUsername() != null && !criteria.getUsername().trim().isEmpty()) {
+                predicates.add(criteriaBuilder.like(
+                        criteriaBuilder.lower(root.get("user").get("email")),
+                        "%" + criteria.getUsername().toLowerCase() + "%"
                 ));
             }
 

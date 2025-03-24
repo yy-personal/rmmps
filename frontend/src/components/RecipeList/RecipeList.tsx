@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
-import Box from "@mui/material/Box";
-import Autocomplete from "@mui/material/Autocomplete";
-import RecipeCard from "../RecipeCard/RecipeCard";
+import { useEffect, useState, useContext } from "react";
+import { AuthContext } from "../../contexts/auth-context";
 import { useHttpClient } from "hooks/http-hook";
+
+// Material UI imports
+import Box from "@mui/material/Box";
 import Grid from "@mui/material/Grid";
 import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
@@ -20,6 +21,8 @@ import Checkbox from "@mui/material/Checkbox";
 import ListItemText from "@mui/material/ListItemText";
 import Alert from "@mui/material/Alert";
 import Pagination from "@mui/material/Pagination";
+import Autocomplete from "@mui/material/Autocomplete";
+import FormControlLabel from "@mui/material/FormControlLabel";
 
 // Icons
 import SearchIcon from "@mui/icons-material/Search";
@@ -29,7 +32,12 @@ import RestaurantIcon from "@mui/icons-material/Restaurant";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import KitchenIcon from "@mui/icons-material/Kitchen";
 import SignalCellularAltIcon from "@mui/icons-material/SignalCellularAlt";
+import PersonIcon from "@mui/icons-material/Person";
 
+// Components
+import RecipeCard from "../RecipeCard/RecipeCard";
+
+// Interfaces
 interface User {
 	userId: number;
 	email: string;
@@ -37,6 +45,11 @@ interface User {
 
 interface MealType {
 	mealTypeId: number;
+	name: string;
+}
+
+interface Ingredient {
+	ingredientId: number;
 	name: string;
 }
 
@@ -52,11 +65,6 @@ interface RecipeType {
 	mealTypes?: MealType[];
 }
 
-interface Ingredient {
-	ingredientId: number;
-	name: string;
-}
-
 interface SearchParams {
 	title: string;
 	ingredientIds: number[];
@@ -64,6 +72,7 @@ interface SearchParams {
 	maxTotalTime: number | null;
 	minTotalTime: number | null;
 	userId: number | null;
+	username: string;
 	mealTypeIds: number[];
 	servings: number | null;
 	page: number;
@@ -82,6 +91,7 @@ interface SearchResponse {
 
 function RecipeList() {
 	const { isLoading, sendRequest, serverError } = useHttpClient();
+	const auth = useContext(AuthContext); // Get auth context for user info
 	const [recipes, setRecipes] = useState<RecipeType[]>([]);
 	const [searchMode, setSearchMode] = useState(false);
 	const [searchResults, setSearchResults] = useState<SearchResponse | null>(
@@ -102,6 +112,7 @@ function RecipeList() {
 		maxTotalTime: null,
 		minTotalTime: null,
 		userId: null,
+		username: "",
 		mealTypeIds: [],
 		servings: null,
 		page: 0,
@@ -110,6 +121,47 @@ function RecipeList() {
 		sortDirection: "asc",
 	});
 
+	// Update the getUserIdFromAuth function to be more reliable
+	const getUserIdFromAuth = (): number | null => {
+		if (!auth.isLoggedIn) return null;
+
+		try {
+			// In a real app, we would probably have the user ID directly in the auth context
+			// For now, let's try to extract it from the stored userData
+			const userData = localStorage.getItem("rmmps-userData");
+			if (userData) {
+				const parsedData = JSON.parse(userData);
+
+				// Debug what's in the stored data
+				console.log("UserData from localStorage:", parsedData);
+
+				// Check if we have a direct user object with ID
+				if (parsedData.user && parsedData.user.userId) {
+					return parsedData.user.userId;
+				}
+
+				// Try to get the userId from the API
+				if (auth.userEmail) {
+					// We could do a lookup by email here if needed
+					console.log(
+						"Using email to identify user:",
+						auth.userEmail
+					);
+					// You might need to add an API call here to look up the user by email
+
+					// For now, return a fallback if you know the user ID pattern
+					return null; // Replace with actual logic if possible
+				}
+
+				return null;
+			}
+			return null;
+		} catch (error) {
+			console.error("Error getting user ID:", error);
+			return null;
+		}
+	};
+  
 	// Fetch all recipes on initial load (when not in search mode)
 	useEffect(() => {
 		if (!searchMode) {
@@ -129,6 +181,19 @@ function RecipeList() {
 			performSearch();
 		}
 	}, [searchParams.page]);
+
+	useEffect(() => {
+		if (auth.isLoggedIn) {
+			console.log("Auth context:", auth);
+			console.log("User Email:", auth.userEmail);
+
+			// Log what's in localStorage to debug
+			const userData = localStorage.getItem("rmmps-userData");
+			if (userData) {
+				console.log("User data in localStorage:", JSON.parse(userData));
+			}
+		}
+	}, [auth.isLoggedIn]);
 
 	const fetchAllRecipes = async () => {
 		try {
@@ -220,6 +285,17 @@ function RecipeList() {
 		}));
 	};
 
+	// Handle ingredient selection
+	const handleIngredientChange = (
+		_event: React.SyntheticEvent<Element, Event>,
+		value: Ingredient[]
+	) => {
+		setSearchParams((prev) => ({
+			...prev,
+			ingredientIds: value.map((ingredient) => ingredient.ingredientId),
+		}));
+	};
+
 	const handleResetFilters = () => {
 		setSearchParams({
 			title: "",
@@ -228,6 +304,7 @@ function RecipeList() {
 			maxTotalTime: null,
 			minTotalTime: null,
 			userId: null,
+			username: "",
 			mealTypeIds: [],
 			servings: null,
 			page: 0,
@@ -275,20 +352,10 @@ function RecipeList() {
 			searchParams.maxTotalTime !== null ||
 			searchParams.minTotalTime !== null ||
 			searchParams.userId !== null ||
+			searchParams.username !== "" ||
 			searchParams.mealTypeIds.length > 0 ||
 			searchParams.servings !== null
 		);
-	};
-
-	// Handle ingredient selection
-	const handleIngredientChange = (
-		_event: React.SyntheticEvent<Element, Event>,
-		value: Ingredient[]
-	) => {
-		setSearchParams((prev) => ({
-			...prev,
-			ingredientIds: value.map((ingredient) => ingredient.ingredientId),
-		}));
 	};
 
 	return (
@@ -330,15 +397,22 @@ function RecipeList() {
 						</Grid>
 
 						<Grid item xs={12} md={3}>
-							<Autocomplete
+							<Autocomplete<Ingredient, true>
 								multiple
 								id="ingredients-autocomplete"
 								options={availableIngredients}
-								getOptionLabel={(option) => option.name}
-								isOptionEqualToValue={(option, value) =>
-									option.ingredientId === value.ingredientId
+								getOptionLabel={(option: Ingredient) =>
+									option.name
 								}
-								renderOption={(props, option, { selected }) => (
+								isOptionEqualToValue={(
+									option: Ingredient,
+									value: Ingredient
+								) => option.ingredientId === value.ingredientId}
+								renderOption={(
+									props: React.HTMLAttributes<HTMLLIElement>,
+									option: Ingredient,
+									{ selected }: { selected: boolean }
+								) => (
 									<li {...props}>
 										<Checkbox
 											style={{ marginRight: 8 }}
@@ -354,7 +428,11 @@ function RecipeList() {
 										)
 								)}
 								onChange={handleIngredientChange}
-								renderInput={(params) => (
+								renderInput={(
+									params: React.ComponentProps<
+										typeof TextField
+									>
+								) => (
 									<TextField
 										{...params}
 										label="Ingredients"
@@ -368,21 +446,28 @@ function RecipeList() {
 													</InputAdornment>
 													{
 														params.InputProps
-															.startAdornment
+															?.startAdornment
 													}
 												</>
 											),
 										}}
 									/>
 								)}
-								renderTags={(value, getTagProps) =>
-									value.map((option, index) => (
-										<Chip
-											label={option.name}
-											size="small"
-											{...getTagProps({ index })}
-										/>
-									))
+								renderTags={(
+									value: Ingredient[],
+									getTagProps: (props: {
+										index: number;
+									}) => any
+								) =>
+									value.map(
+										(option: Ingredient, index: number) => (
+											<Chip
+												label={option.name}
+												size="small"
+												{...getTagProps({ index })}
+											/>
+										)
+									)
 								}
 							/>
 						</Grid>
@@ -430,6 +515,115 @@ function RecipeList() {
 						{/* Advanced filters */}
 						{showFilters && (
 							<>
+								<Grid item xs={12} md={6} lg={3}>
+									<TextField
+										fullWidth
+										name="username"
+										label="Search by User"
+										value={searchParams.username}
+										onChange={handleInputChange}
+										placeholder="Enter username/email"
+										InputProps={{
+											startAdornment: (
+												<InputAdornment position="start">
+													<PersonIcon />
+												</InputAdornment>
+											),
+										}}
+									/>
+								</Grid>
+
+								{auth.isLoggedIn && (
+									<Grid item xs={12} md={6} lg={3}>
+										<FormControlLabel
+											control={
+												<Checkbox
+													// Check the box if either userId is set OR username is set
+													checked={
+														searchParams.userId !==
+															null ||
+														(searchParams.username !==
+															null &&
+															searchParams.username !==
+																"")
+													}
+													onChange={(e) => {
+														if (e.target.checked) {
+															// Get the user ID when checkbox is checked
+															const userId =
+																getUserIdFromAuth();
+															console.log(
+																"Setting userId filter to:",
+																userId
+															);
+
+															if (
+																userId !== null
+															) {
+																setSearchParams(
+																	(prev) => ({
+																		...prev,
+																		userId: userId,
+																		// Clear the username filter when searching by user ID
+																		username:
+																			"",
+																	})
+																);
+															} else {
+																// If we can't get a user ID but have an email, try filtering by username
+																if (
+																	auth.userEmail
+																) {
+																	const username =
+																		auth.userEmail.split(
+																			"@"
+																		)[0];
+																	console.log(
+																		"Falling back to username filter:",
+																		username
+																	);
+																	setSearchParams(
+																		(
+																			prev
+																		) => ({
+																			...prev,
+																			userId: null,
+																			username:
+																				username,
+																		})
+																	);
+																}
+
+																// Show some notification that we couldn't determine the user ID
+																console.error(
+																	"Could not determine user ID for filtering"
+																);
+															}
+														} else {
+															// Clear both the user ID and username filters when checkbox is unchecked
+															setSearchParams(
+																(prev) => ({
+																	...prev,
+																	userId: null,
+																	username:
+																		"",
+																})
+															);
+														}
+													}}
+													color="primary"
+												/>
+											}
+											label="My Recipes Only"
+											sx={{
+												height: "100%",
+												display: "flex",
+												alignItems: "center",
+											}}
+										/>
+									</Grid>
+								)}
+
 								<Grid item xs={12} md={6} lg={3}>
 									<FormControl fullWidth>
 										<InputLabel id="difficulty-level-label">
