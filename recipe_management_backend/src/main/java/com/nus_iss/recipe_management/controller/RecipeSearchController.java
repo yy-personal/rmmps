@@ -80,7 +80,10 @@ public class RecipeSearchController {
     private String sanitizeForLog(String input) {
         if (input == null) return "null";
         // Replace potential log injection characters with safe equivalents
-        String sanitized = input.replaceAll("[\r\n\t]", "_");
+        String sanitized = input.replaceAll("[\r\n\t]", "_")
+                                .replaceAll("[\\x00-\\x1F\\x7F]", "_") // Replace control characters
+                                .replaceAll("[{}]", "_") // Replace curly braces
+                                .replaceAll("[<>]", "_"); // Replace angle brackets
         // Truncate to reasonable length to prevent log bloat
         return sanitized.substring(0, Math.min(sanitized.length(), 100));
     }
