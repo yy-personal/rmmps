@@ -1,13 +1,14 @@
 package com.nus_iss.recipe_management.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import com.nus_iss.recipe_management.model.*;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
-public interface RecipeRepository extends JpaRepository<Recipe, Integer> {
+public interface RecipeRepository extends JpaRepository<Recipe, Integer>, JpaSpecificationExecutor<Recipe> {
     @Query("""
         SELECT r FROM Recipe r
         JOIN RecipeDietaryRestrictionMapping rdm ON r.recipeId = rdm.recipe.recipeId
@@ -25,4 +26,5 @@ public interface RecipeRepository extends JpaRepository<Recipe, Integer> {
         )
     """)
     List<Recipe> findRecommendedRecipes(@Param("userId") Integer userId);
+
 }
