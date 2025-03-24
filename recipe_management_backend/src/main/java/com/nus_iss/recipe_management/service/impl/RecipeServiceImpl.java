@@ -231,7 +231,8 @@ public class RecipeServiceImpl implements RecipeService {
             try {
                 existingRecipe.setDifficultyLevel(DifficultyLevel.valueOf(recipeDTO.getDifficultyLevel()));
             } catch (IllegalArgumentException e) {
-                log.warn("Invalid difficulty level: {}", recipeDTO.getDifficultyLevel());
+                String sanitizedDifficultyLevel = recipeDTO.getDifficultyLevel().replace('\n', ' ').replace('\r', ' ');
+                log.warn("Invalid difficulty level: {}", sanitizedDifficultyLevel);
             }
         }
         if (recipeDTO.getServings() != null) existingRecipe.setServings(recipeDTO.getServings());
