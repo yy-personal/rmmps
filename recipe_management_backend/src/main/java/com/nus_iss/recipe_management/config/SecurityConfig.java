@@ -40,7 +40,10 @@ public class SecurityConfig {
                     config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
                     config.setAllowedHeaders(List.of("*"));
                     return config;
-                })).csrf(csrf -> csrf.disable()) // New way to disable CSRF
+                }))
+                .csrf(csrf -> csrf
+                        .ignoringRequestMatchers("/api/**")  // Ignore CSRF for all API endpoints
+                )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/users/**").permitAll()
