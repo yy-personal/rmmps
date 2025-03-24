@@ -21,9 +21,31 @@ public class RecipeSearchServiceImpl implements RecipeSearchService {
 
     @Override
     public Page<Recipe> searchRecipes(RecipeSearchDTO searchCriteria, Pageable pageable) {
-        log.info("Searching recipes with criteria: {}", searchCriteria);
+        // Log without including the full search criteria object
+        log.info("Processing recipe search with {} filters", getFilterCount(searchCriteria));
 
         Specification<Recipe> spec = RecipeSpecifications.withSearchCriteria(searchCriteria);
         return recipeRepository.findAll(spec, pageable);
+    }
+
+    /**
+     * Counts the number of active filters in the search criteria
+     * @param criteria The search criteria
+     * @return The number of active filters
+     */
+    private int getFilterCount(RecipeSearchDTO criteria) {
+        int count = 0;
+
+        if (criteria.getTitle() != null && !criteria.getTitle().trim().isEmpty()) count++;
+        if (criteria.getDifficultyLevel() != null && !criteria.getDifficultyLevel().trim().isEmpty()) count++;
+        if (criteria.getMaxTotalTime() != null) count++;
+        if (criteria.getMinTotalTime() != null) count++;
+        if (criteria.getUserId() != null) count++;
+        if (criteria.getUsername() != null && !criteria.getUsername().trim().isEmpty()) count++;
+        if (criteria.getServings() != null) count++;
+        if (criteria.getIngredientIds() != null && !criteria.getIngredientIds().isEmpty()) count++;
+        if (criteria.getMealTypeIds() != null && !criteria.getMealTypeIds().isEmpty()) count++;
+
+        return count;
     }
 }

@@ -33,7 +33,12 @@ public class RecipeSearchController {
     })
     @PostMapping
     public ResponseEntity<Page<Recipe>> searchRecipes(@RequestBody RecipeSearchDTO searchCriteria) {
-        log.info("Received search request: {}", searchCriteria);
+        // Safely log search parameters without logging the entire object
+        log.info("Search request received - title: '{}', difficulty: '{}', page: {}, sort: {}",
+                sanitizeForLog(searchCriteria.getTitle()),
+                sanitizeForLog(searchCriteria.getDifficultyLevel()),
+                searchCriteria.getPage() != null ? searchCriteria.getPage() : 0,
+                sanitizeForLog(searchCriteria.getSortBy()));
 
         // Default values if null
         int page = searchCriteria.getPage() != null ? searchCriteria.getPage() : 0;
@@ -57,11 +62,26 @@ public class RecipeSearchController {
             Page<Recipe> results = recipeSearchService.searchRecipes(searchCriteria, pageable);
             return ResponseEntity.ok(results);
         } catch (IllegalArgumentException e) {
-            log.error("Invalid search criteria: {}", e.getMessage());
+            // Safely log the error message
+            log.error("Invalid search criteria: {}", sanitizeForLog(e.getMessage()));
             return ResponseEntity.badRequest().build();
         } catch (Exception e) {
-            log.error("Error occurred during search: {}", e.getMessage());
+            // Safely log the error message
+            log.error("Error occurred during search: {}", sanitizeForLog(e.getMessage()));
             return ResponseEntity.internalServerError().build();
         }
+    }
+
+    /**
+     * Sanitizes a string for safe logging to prevent log injection
+     * @param input The input string to sanitize
+     * @return A sanitized version of the input string
+     */
+    private String sanitizeForLog(String input) {
+        if (input == null) return "null";
+        // Replace potential log injection characters with safe equivalents
+        String sanitized = input.replaceAll("[\r\n\t]", "_");
+        // Truncate to reasonable length to prevent log bloat
+        return sanitized.substring(0, Math.min(sanitized.length(), 100));
     }
 }
