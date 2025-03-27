@@ -93,6 +93,7 @@ function RecipeList() {
 	const { isLoading, sendRequest, serverError } = useHttpClient();
 	const auth = useContext(AuthContext); // Get auth context for user info
 	const [recipes, setRecipes] = useState<RecipeType[]>([]);
+	const [displayedRecipes, setDisplayedRecipes] = useState<RecipeType[]>([]);
 	const [searchMode, setSearchMode] = useState(false);
 	const [searchResults, setSearchResults] = useState<SearchResponse | null>(
 		null
@@ -161,13 +162,20 @@ function RecipeList() {
 			return null;
 		}
 	};
-  
+
 	// Fetch all recipes on initial load (when not in search mode)
 	useEffect(() => {
 		if (!searchMode) {
 			fetchAllRecipes();
 		}
 	}, [searchMode]);
+
+	// Apply sorting to displayed recipes whenever sort parameters or recipes change
+	useEffect(() => {
+		if (!searchMode && recipes.length > 0) {
+			applySortingToRecipes();
+		}
+	}, [recipes, searchParams.sortBy, searchParams.sortDirection]);
 
 	// Fetch meal types and ingredients for search filter
 	useEffect(() => {
@@ -201,9 +209,60 @@ function RecipeList() {
 				`${process.env.REACT_APP_BACKEND_URL}/recipes`
 			);
 			setRecipes(responseData);
+			// Also update displayed recipes with sorting applied
+			applyInitialSorting(responseData);
 		} catch (err) {
 			console.log(err);
 		}
+	};
+
+	// Apply initial sorting to recipes when first loaded
+	const applyInitialSorting = (recipeData: RecipeType[]) => {
+		const sortedRecipes = [...recipeData];
+		sortRecipes(sortedRecipes);
+		setDisplayedRecipes(sortedRecipes);
+	};
+
+	// Apply sorting to the current recipes
+	const applySortingToRecipes = () => {
+		const sortedRecipes = [...recipes];
+		sortRecipes(sortedRecipes);
+		setDisplayedRecipes(sortedRecipes);
+	};
+
+	// Generic sort function that can be reused
+	const sortRecipes = (recipesToSort: RecipeType[]) => {
+		const { sortBy, sortDirection } = searchParams;
+		const sortMultiplier = sortDirection === "asc" ? 1 : -1;
+
+		recipesToSort.sort((a, b) => {
+			switch (sortBy) {
+				case "title":
+					return sortMultiplier * a.title.localeCompare(b.title);
+				case "preparationTime":
+					return (
+						sortMultiplier * (a.preparationTime - b.preparationTime)
+					);
+				case "cookingTime":
+					return sortMultiplier * (a.cookingTime - b.cookingTime);
+				case "servings":
+					return sortMultiplier * (a.servings - b.servings);
+				case "difficultyLevel":
+					// We need to define a custom order for difficulty levels
+					const difficultyOrder = { EASY: 0, MEDIUM: 1, HARD: 2 };
+					return (
+						sortMultiplier *
+						(difficultyOrder[
+							a.difficultyLevel as keyof typeof difficultyOrder
+						] -
+							difficultyOrder[
+								b.difficultyLevel as keyof typeof difficultyOrder
+							])
+					);
+				default:
+					return 0;
+			}
+		});
 	};
 
 	const fetchMealTypes = async () => {
@@ -270,9 +329,12 @@ function RecipeList() {
 			[name]: value,
 			page: 0, // Reset to first page when sort changes
 		}));
+
+		// Always apply sorting changes, regardless of search mode
 		if (searchMode) {
 			performSearch();
 		}
+		// No need for else case - the useEffect will handle sorting regular recipes
 	};
 
 	const handlePageChange = (
@@ -811,6 +873,50 @@ function RecipeList() {
 				</Box>
 			</Paper>
 
+			{/* Sorting Controls - Always Visible */}
+			<Box
+				sx={{
+					display: "flex",
+					justifyContent: "flex-end",
+					alignItems: "center",
+					mb: 2,
+				}}
+			>
+				<SortIcon sx={{ mr: 1, color: "#555" }} />
+				<FormControl sx={{ minWidth: 120, mr: 2 }}>
+					<InputLabel id="sort-by-label">Sort By</InputLabel>
+					<Select
+						labelId="sort-by-label"
+						name="sortBy"
+						value={searchParams.sortBy}
+						label="Sort By"
+						onChange={handleSortChange}
+						size="small"
+					>
+						<MenuItem value="title">Name</MenuItem>
+						<MenuItem value="preparationTime">Prep Time</MenuItem>
+						<MenuItem value="cookingTime">Cook Time</MenuItem>
+						<MenuItem value="servings">Servings</MenuItem>
+						<MenuItem value="difficultyLevel">Difficulty</MenuItem>
+					</Select>
+				</FormControl>
+
+				<FormControl sx={{ minWidth: 120 }}>
+					<InputLabel id="sort-direction-label">Direction</InputLabel>
+					<Select
+						labelId="sort-direction-label"
+						name="sortDirection"
+						value={searchParams.sortDirection}
+						label="Direction"
+						onChange={handleSortChange}
+						size="small"
+					>
+						<MenuItem value="asc">Ascending</MenuItem>
+						<MenuItem value="desc">Descending</MenuItem>
+					</Select>
+				</FormControl>
+			</Box>
+
 			{/* Results Section */}
 			{isLoading ? (
 				<Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
@@ -844,54 +950,6 @@ function RecipeList() {
 								</Button>
 							)}
 						</Typography>
-
-						<Box sx={{ display: "flex", alignItems: "center" }}>
-							<SortIcon sx={{ mr: 1, color: "#555" }} />
-							<FormControl sx={{ minWidth: 120, mr: 2 }}>
-								<InputLabel id="sort-by-label">
-									Sort By
-								</InputLabel>
-								<Select
-									labelId="sort-by-label"
-									name="sortBy"
-									value={searchParams.sortBy}
-									label="Sort By"
-									onChange={handleSortChange}
-									size="small"
-								>
-									<MenuItem value="title">Name</MenuItem>
-									<MenuItem value="preparationTime">
-										Prep Time
-									</MenuItem>
-									<MenuItem value="cookingTime">
-										Cook Time
-									</MenuItem>
-									<MenuItem value="servings">
-										Servings
-									</MenuItem>
-									<MenuItem value="difficultyLevel">
-										Difficulty
-									</MenuItem>
-								</Select>
-							</FormControl>
-
-							<FormControl sx={{ minWidth: 120 }}>
-								<InputLabel id="sort-direction-label">
-									Direction
-								</InputLabel>
-								<Select
-									labelId="sort-direction-label"
-									name="sortDirection"
-									value={searchParams.sortDirection}
-									label="Direction"
-									onChange={handleSortChange}
-									size="small"
-								>
-									<MenuItem value="asc">Ascending</MenuItem>
-									<MenuItem value="desc">Descending</MenuItem>
-								</Select>
-							</FormControl>
-						</Box>
 					</Box>
 
 					{searchResults.content.length === 0 ? (
@@ -945,16 +1003,21 @@ function RecipeList() {
 				</>
 			) : (
 				// Default Recipe List (All Recipes)
-				<Box
-					sx={{
-						display: "flex",
-						flexWrap: "wrap",
-						justifyContent: "space-evenly",
-						pt: "10px",
-					}}
-				>
-					{recipes.map((recipe) => {
-						return (
+				<>
+					<Typography variant="h6" sx={{ mb: 2 }}>
+						{displayedRecipes.length}{" "}
+						{displayedRecipes.length === 1 ? "Recipe" : "Recipes"}
+					</Typography>
+
+					<Box
+						sx={{
+							display: "flex",
+							flexWrap: "wrap",
+							justifyContent: "space-evenly",
+							pt: "10px",
+						}}
+					>
+						{displayedRecipes.map((recipe) => (
 							<RecipeCard
 								key={recipe.recipeId}
 								recipeId={recipe.recipeId}
@@ -967,9 +1030,9 @@ function RecipeList() {
 								steps={recipe.steps}
 								mealTypes={recipe.mealTypes}
 							/>
-						);
-					})}
-				</Box>
+						))}
+					</Box>
+				</>
 			)}
 		</Box>
 	);
