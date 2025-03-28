@@ -1,7 +1,7 @@
 import Box from "@mui/material/Box";
-import data from "./dummy-meal-plans.json";
-import MealPlanCard from "../MealPlanCard/MealPlanCard";
 import { useEffect, useState } from "react";
+import MealPlanCard from "../MealPlanCard/MealPlanCard";
+import MealPlanDetail from "../MealPlanDetail/MealPlanDetail";
 import { useHttpClient } from "hooks/http-hook";
 
 interface User {
@@ -10,17 +10,20 @@ interface User {
 }
 
 interface MealPlanType {
-	mealPlanId: number;
-	title: string;
-	frequency: number;
+  mealPlanId: number;
+  title: string;
+  frequency: number;
   mealsPerDay: number;
   startDate: Date;
   endDate: Date;
-	user: User;
+  user: User;
 }
+
 function MealPlanList() {
   const { sendRequest } = useHttpClient();
-  const [MealPlans, setMealPlans] = useState<MealPlanType[]>();
+  const [mealPlans, setMealPlans] = useState<MealPlanType[]>();
+  const [selectedMealPlanId, setSelectedMealPlanId] = useState<number | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
 
   useEffect(() => {
     const fetchMealPlans = async () => {
@@ -28,18 +31,34 @@ function MealPlanList() {
         const responseData = await sendRequest(
           `${process.env.REACT_APP_BACKEND_URL}/mealPlans`
         );
-
         setMealPlans(responseData);
       } catch (err) {
-        console.log(err.message);
+        console.error(err.message);
       }
     };
     fetchMealPlans();
-  }, [setMealPlans, sendRequest]);
+  }, [sendRequest]);
 
-  if (!MealPlans) {
+  const handleOpenDetail = (mealPlanId: number) => {
+    setSelectedMealPlanId(mealPlanId);
+    setDetailOpen(true);
+  };
+
+  const handleCloseDetail = () => {
+    setDetailOpen(false);
+    setSelectedMealPlanId(null);
+  };
+
+  const handleDeleteMealPlan = (mealPlanId: number) => {
+    setMealPlans((prevMealPlans) =>
+        prevMealPlans?.filter((mealPlan) => mealPlan.mealPlanId !== mealPlanId)
+    );
+};
+
+  if (!mealPlans) {
     return <Box></Box>;
   }
+
   return (
     <Box
       sx={{
@@ -49,20 +68,22 @@ function MealPlanList() {
         pt: "10px",
       }}
     >
-      {MealPlans.map((MealPlan) => {
-        return (
-          <MealPlanCard
-            key={MealPlan.mealPlanId}
-            mealPlanId={MealPlan.mealPlanId}
-            title={MealPlan.title}
-            user={MealPlan.user}
-            frequency={MealPlan.frequency}
-            mealsPerDay={MealPlan.mealsPerDay}
-            startDate={MealPlan.startDate}
-            endDate={MealPlan.endDate}
-          />
-        );
-      })}
+      {mealPlans.map((mealPlan) => (
+        <MealPlanCard
+          key={mealPlan.mealPlanId}
+          {...mealPlan}
+          onOpenDetail={() => handleOpenDetail(mealPlan.mealPlanId)}
+        />
+      ))}
+
+      {selectedMealPlanId !== null && (
+        <MealPlanDetail
+          mealPlanId={selectedMealPlanId}
+          open={detailOpen}
+          onClose={handleCloseDetail}
+          onDelete={handleDeleteMealPlan}
+        />
+      )}
     </Box>
   );
 }

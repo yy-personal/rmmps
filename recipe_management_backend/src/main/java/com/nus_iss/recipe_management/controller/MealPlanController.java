@@ -110,6 +110,8 @@ public class MealPlanController {
         ResponseEntity<MealPlan> response;
         try {
             MealPlan updatedMealPlan = mealPlanService.updateMealPlan(id, mealPlanDetails);
+            // print updatedMealPlan to console
+            System.out.println("Updated Meal Plan: " + updatedMealPlan);
             response = ResponseEntity.ok(updatedMealPlan);
         } catch (MealPlanNotFoundException ex) {
             response = ResponseEntity.notFound().build();

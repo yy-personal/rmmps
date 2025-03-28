@@ -37,6 +37,7 @@ interface MealPlanDetailProps {
 	mealPlanId: number | null;
 	open: boolean;
 	onClose: () => void;
+	onDelete: (mealPlanId: number) => void;
 }
 
 interface MealPlanType {
@@ -47,10 +48,9 @@ interface MealPlanType {
     startDate: Date;
     endDate: Date;
 	user: User;
-    createdAt: string;
 }
 
-function MealPlanDetail({ mealPlanId, open, onClose }: MealPlanDetailProps) {
+function MealPlanDetail({ mealPlanId, open, onClose, onDelete }: MealPlanDetailProps) {
 	const auth = useContext(AuthContext);
 	const { isLoading, sendRequest, serverError } = useHttpClient();
 	const [MealPlan, setMealPlan] = useState<MealPlanType | null>(null);
@@ -67,6 +67,9 @@ function MealPlanDetail({ mealPlanId, open, onClose }: MealPlanDetailProps) {
 					`${process.env.REACT_APP_BACKEND_URL}/mealPlans/${mealPlanId}`
 				);
 				setMealPlan(responseData);
+				// convert date strings to Date objects
+				responseData.startDate = new Date(responseData.startDate);
+				responseData.endDate = new Date(responseData.endDate);
 				// Initialize edit form state with current MealPlan data
 				setEditFormState({
 					title: responseData.title,
@@ -92,8 +95,8 @@ function MealPlanDetail({ mealPlanId, open, onClose }: MealPlanDetailProps) {
 		const { name, value, type } = e.target;
 		setEditFormState({
 			...editFormState,
-			// Convert to number if it's a number input
-			[name]: type === "number" ? Number(value) : value,
+			// Convert to number if it's a number input, or to Date if it's a date input
+			[name]: type === "number" ? Number(value) : type === "date" ? new Date(value) : value,
 		});
 	};
 
@@ -121,7 +124,7 @@ function MealPlanDetail({ mealPlanId, open, onClose }: MealPlanDetailProps) {
 		setIsSaving(true);
 		try {
 			// Prepare data for update
-			const updateData = {
+			var updateData = {
 				...MealPlan,
 				title: editFormState.title,
 				frequency: editFormState.frequency,
@@ -129,7 +132,6 @@ function MealPlanDetail({ mealPlanId, open, onClose }: MealPlanDetailProps) {
 				startDate: editFormState.startDate,
 				endDate: editFormState.endDate,
 			};
-
 			// Send update request
 			const responseData = await sendRequest(
 				`${process.env.REACT_APP_BACKEND_URL}/mealPlans/${mealPlanId}`,
@@ -142,12 +144,37 @@ function MealPlanDetail({ mealPlanId, open, onClose }: MealPlanDetailProps) {
 			);
 
 			// Update local MealPlan state with response
+			responseData.startDate = new Date(responseData.startDate);
+			responseData.endDate = new Date(responseData.endDate);
 			setMealPlan(responseData);
 			setIsEditing(false);
 		} catch (err) {
 			console.log(err.message || serverError);
 		} finally {
 			setIsSaving(false);
+		}
+	};
+
+	// Function to handle deletion of MealPlan
+	const handleDelete = async () => {
+		if (!mealPlanId) return;
+
+		try {
+			await sendRequest(
+				`${process.env.REACT_APP_BACKEND_URL}/mealPlans/${mealPlanId}`,
+				"DELETE",
+				null,
+				{
+					"Content-Type": "application/json",
+					Authorization: `Bearer ${auth.accessToken}`,
+				}
+			);
+			setMealPlan(null);
+			onClose(); 
+			onDelete(mealPlanId);
+
+		} catch (err) {
+			console.log(err.message || serverError);
 		}
 	};
 
@@ -271,7 +298,7 @@ function MealPlanDetail({ mealPlanId, open, onClose }: MealPlanDetailProps) {
 											<TextField
 												name="frequency"
 												label="Frequency"
-												type="number"
+												type="string"
 												value={
 													editFormState.frequency
 												}
@@ -285,7 +312,7 @@ function MealPlanDetail({ mealPlanId, open, onClose }: MealPlanDetailProps) {
 											/>
 										) : (
 											<Typography>
-												{MealPlan.frequency} min
+												{MealPlan.frequency}
 											</Typography>
 										)}
 									</Stack>
@@ -316,7 +343,7 @@ function MealPlanDetail({ mealPlanId, open, onClose }: MealPlanDetailProps) {
 											/>
 										) : (
 											<Typography>
-												{MealPlan.mealsPerDay} min
+												{MealPlan.mealsPerDay} meals
 											</Typography>
 										)}
 									</Stack>
@@ -337,7 +364,7 @@ function MealPlanDetail({ mealPlanId, open, onClose }: MealPlanDetailProps) {
 												name="startDate"
 												label="Start Date"
 												type="date"
-												value={editFormState.startDate}
+												value={(editFormState.startDate ?? new Date()).toISOString().split("T")[0]}
 												onChange={handleChange}
 												variant="outlined"
 												size="small"
@@ -361,12 +388,11 @@ function MealPlanDetail({ mealPlanId, open, onClose }: MealPlanDetailProps) {
 											sx={{ color: "#2e7d32" }}
 										/>
 										{isEditing ? (
-                                            
 											<TextField
 												name="endDate"
 												label="End Date"
 												type="date"
-												value={editFormState.endDate}
+												value={(editFormState.endDate ?? new Date()).toISOString().split("T")[0]}
 												onChange={handleChange}
 												variant="outlined"
 												size="small"
@@ -399,22 +425,6 @@ function MealPlanDetail({ mealPlanId, open, onClose }: MealPlanDetailProps) {
 									</Typography>
 								</Stack>
 
-								<Stack
-									direction="row"
-									alignItems="center"
-									spacing={1}
-								>
-									<DateRangeIcon sx={{ color: "#0288d1" }} />
-									<Typography
-										variant="subtitle2"
-										color="text.secondary"
-									>
-										Created on{" "}
-										{new Date(
-											MealPlan.createdAt
-										).toLocaleDateString()}
-									</Typography>
-								</Stack>
 							</Box>
 
 							<Divider sx={{ my: 2 }} />
@@ -438,6 +448,19 @@ function MealPlanDetail({ mealPlanId, open, onClose }: MealPlanDetailProps) {
 										Edit MealPlan
 									</Button>
 								)}
+
+								{/* delete button */}
+								{isOwner && !isEditing && (
+									<Button
+										variant="outlined"
+										color="error"
+										onClick={handleDelete}
+									>
+										Delete MealPlan
+									</Button>
+								)}
+
+								{/* Save and Cancel buttons when editing */}
 
 								{isEditing && (
 									<>

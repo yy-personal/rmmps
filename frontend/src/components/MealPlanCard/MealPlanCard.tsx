@@ -12,6 +12,15 @@ import ShareIcon from "@mui/icons-material/Share";
 import InfoIcon from "@mui/icons-material/Info";
 import MealPlanDetail from "../MealPlanDetail/MealPlanDetail";
 
+
+// Define or import RecipeDetail type
+interface RecipeDetail {
+	recipeId: number;
+	name: string;
+	description: string;
+	imageUrl: string;
+}
+
 interface User {
 	userId: number;
 	email: string;
@@ -27,17 +36,11 @@ interface MealPlanType {
 	user: User;
 }
 
-function MealPlanCard(props: MealPlanType) {
-	const [detailOpen, setDetailOpen] = useState(false);
+interface MealPlanProps extends MealPlanType {
+	onOpenDetail: () => void;
+  }
 
-	const handleOpenDetail = () => {
-		setDetailOpen(true);
-	};
-
-	const handleCloseDetail = () => {
-		setDetailOpen(false);
-	};
-
+function MealPlanCard(props: MealPlanProps) {
 	return (
 		<>
 			<Box
@@ -47,7 +50,7 @@ function MealPlanCard(props: MealPlanType) {
 					boxSizing: "border-box",
 				}}
 			>
-				<Card sx={{ cursor: "pointer" }} onClick={handleOpenDetail}>
+				<Card sx={{ cursor: "pointer" }} onClick={props.onOpenDetail}>
 					<CardHeader
 						title={props.title}
 						subheader={`By: ${props.user.email}`}
@@ -70,7 +73,7 @@ function MealPlanCard(props: MealPlanType) {
 							sx={{ marginLeft: "auto" }}
 							onClick={(e) => {
 								e.stopPropagation();
-								handleOpenDetail();
+								props.onOpenDetail();
 							}}
 						>
 							<InfoIcon />
@@ -78,12 +81,6 @@ function MealPlanCard(props: MealPlanType) {
 					</CardActions>
 				</Card>
 			</Box>
-
-			<MealPlanDetail
-				mealPlanId={props.mealPlanId}
-				open={detailOpen}
-				onClose={handleCloseDetail}
-			/>
 		</>
 	);
 }

@@ -66,7 +66,7 @@ function Header() {
 			description: "Manage your shopping lists",
 		},
 		{
-			name: "meals",
+			name: "mealPlans",
 			label: "Meal Plans",
 			icon: <CalendarTodayIcon sx={{ mr: 1 }} />,
 			description: "Plan your weekly meals",
