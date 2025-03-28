@@ -23,6 +23,14 @@ public class User {
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
+    @ManyToMany
+    @JoinTable(
+            name = "user_dietary_restrictions",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "dietary_restriction_id")
+    )
+    private Set<DietaryRestriction> dietaryRestrictions;
+
     public Integer getUserId() {
         return userId;
     }

@@ -9,15 +9,15 @@ import java.util.Objects;
 @Embeddable
 @Getter @Setter
 @NoArgsConstructor @AllArgsConstructor
-public class RecipeIngredientsId implements Serializable {
-    private Long recipeId;
-    private Long ingredientId;
+public class RecipeIngredientsMappingId implements Serializable {
+    private Integer recipeId;
+    private Integer ingredientId;
 
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        RecipeIngredientsId that = (RecipeIngredientsId) o;
+        RecipeIngredientsMappingId that = (RecipeIngredientsMappingId) o;
         return Objects.equals(recipeId, that.recipeId) &&
                 Objects.equals(ingredientId, that.ingredientId);
     }

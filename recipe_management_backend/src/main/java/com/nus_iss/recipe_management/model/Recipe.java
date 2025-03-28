@@ -1,10 +1,12 @@
 package com.nus_iss.recipe_management.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
-// Recipes Entity
 @Entity
 @Table(name = "Recipes")
 @Getter @Setter
@@ -36,7 +38,28 @@ public class Recipe {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String steps;
 
+    @OneToMany(mappedBy = "recipe", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<RecipeDietaryRestrictionMapping> dietaryRestrictions = new HashSet<>();
+
+    @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+    @JoinTable(
+            name = "RecipeMealTypeMapping",
+            joinColumns = @JoinColumn(name = "recipe_id"),
+            inverseJoinColumns = @JoinColumn(name = "meal_type_id")
+    )
+    private Set<MealType> mealTypes = new HashSet<>();
+
+    @OneToMany(mappedBy = "recipe", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<MealPlanRecipeMapping> mealPlans = new HashSet<>();
+
+    @OneToMany(mappedBy = "recipe", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<RecipeIngredientsMapping> ingredients = new HashSet<>();
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
-}
 
+    @JsonIgnore // To prevent recursive get in JSON response
+    public Set<MealPlanRecipeMapping> getMealPlans() {
+        return mealPlans;
+    }
+}
