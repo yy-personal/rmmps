@@ -58,10 +58,6 @@ function App() {
 
   const logout = useCallback(async () => {
     try {
-      if (!accessToken) {
-        throw new Error("User is not logged in!");
-      }
-
       /* Update states and local storage */
       setAccessToken("");
       setRefreshToken("");
