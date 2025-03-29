@@ -32,6 +32,7 @@ import Checkbox from "@mui/material/Checkbox";
 import ListItemText from "@mui/material/ListItemText";
 import Autocomplete from "@mui/material/Autocomplete";
 import OutlinedInput from "@mui/material/OutlinedInput";
+import { Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle } from "@mui/material";
 
 interface User {
 	userId: number;
@@ -55,6 +56,7 @@ interface RecipeDetailProps {
 	recipeId: number | null;
 	open: boolean;
 	onClose: () => void;
+	onRecipeDeleted?: (deletedRecipeId: number) => void;
 }
 
 interface RecipeType {
@@ -70,7 +72,7 @@ interface RecipeType {
 	mealTypes: MealType[];
 }
 
-function RecipeDetail({ recipeId, open, onClose }: RecipeDetailProps) {
+function RecipeDetail({ recipeId, open, onClose, onRecipeDeleted }: RecipeDetailProps) {
 	const auth = useContext(AuthContext);
 	const { isLoading, sendRequest, serverError } = useHttpClient();
 	const [recipe, setRecipe] = useState<RecipeType | null>(null);
@@ -83,6 +85,8 @@ function RecipeDetail({ recipeId, open, onClose }: RecipeDetailProps) {
 	const [selectedMealTypes, setSelectedMealTypes] = useState<number[]>([]);
 	const [ingredients, setIngredients] = useState<RecipeIngredient[]>([]);
 	const [loadingIngredients, setLoadingIngredients] = useState(false);
+	const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+	const [deleteStatus, setDeleteStatus] = useState<'idle' | 'deleting' | 'success'>('idle');
 
 	// Fetch available meal types
 	useEffect(() => {
@@ -103,7 +107,7 @@ function RecipeDetail({ recipeId, open, onClose }: RecipeDetailProps) {
 	// Fetch recipe details
 	useEffect(() => {
 		const fetchRecipe = async () => {
-			if (!recipeId) return;
+			if (!recipeId || deleteStatus === 'deleting' || deleteStatus === 'success') return;
 
 			try {
 				const responseData = await sendRequest(
@@ -324,6 +328,36 @@ function RecipeDetail({ recipeId, open, onClose }: RecipeDetailProps) {
 		}
 	};
 
+	const handleDeleteRecipe = async () => {
+		if (!recipeId) return;
+
+		setDeleteStatus('deleting');
+		try {
+			await sendRequest(
+				`${process.env.REACT_APP_BACKEND_URL}/recipes/${recipeId}`,
+				"DELETE",
+				null,
+				{
+					Authorization: `Bearer ${auth.accessToken}`,
+				}
+			);
+
+			setDeleteStatus('success');
+		} catch (err) {
+			console.log(err.message || serverError);
+			setDeleteStatus('idle');
+		}
+	};
+
+	const handleCloseAfterSuccess = () => {
+		setDeleteModalOpen(false);
+		onClose();
+		if (onRecipeDeleted && recipeId) {
+			onRecipeDeleted(recipeId);
+		}
+		setDeleteStatus('idle'); // Reset for next time
+	};
+
 	const isOwner = useMemo(() => {
 		if (!auth.isLoggedIn || !recipe || !recipe.user) return false;
 
@@ -332,705 +366,769 @@ function RecipeDetail({ recipeId, open, onClose }: RecipeDetailProps) {
 	}, [auth.isLoggedIn, auth.userEmail, recipe]);
 
 	return (
-		<Modal
-			open={open}
-			onClose={onClose}
-			aria-labelledby="recipe-detail-modal"
-		>
-			<Paper
-				sx={{
-					position: "absolute",
-					top: "50%",
-					left: "50%",
-					transform: "translate(-50%, -50%)",
-					width: { xs: "90%", sm: "550px", md: "650px" },
-					maxHeight: "85vh",
-					borderRadius: 2,
-					boxShadow: 24,
-					p: 0,
-					overflow: "auto",
-					bgcolor: "#fafafa",
-				}}
+		<>
+			{/* Delete Confirmation Dialog */}
+			<Dialog
+				open={deleteModalOpen}
+				onClose={() => deleteStatus === 'idle' && setDeleteModalOpen(false)}
+				aria-labelledby="delete-dialog-title"
 			>
-				{/* Header with colored background */}
-				<Box
+				{deleteStatus !== 'success' ? (
+					<>
+						<DialogTitle id="delete-dialog-title">Delete Recipe</DialogTitle>
+						<DialogContent>
+							<DialogContentText>
+								Are you sure you want to delete this recipe? This action cannot be undone.
+							</DialogContentText>
+						</DialogContent>
+						<DialogActions>
+							<Button
+								onClick={() => setDeleteModalOpen(false)}
+								disabled={deleteStatus === 'deleting'}
+							>
+								Cancel
+							</Button>
+							<Button
+								onClick={handleDeleteRecipe}
+								disabled={deleteStatus === 'deleting'}
+								color="error"
+								startIcon={deleteStatus === 'deleting' ? <CircularProgress size={20} /> : <DeleteIcon />}
+							>
+								{deleteStatus === 'deleting' ? "Deleting..." : "Delete"}
+							</Button>
+						</DialogActions>
+					</>
+				) : (
+					<>
+						<DialogTitle>Recipe Deleted</DialogTitle>
+						<DialogContent>
+							<DialogContentText>
+								The recipe was successfully deleted.
+							</DialogContentText>
+						</DialogContent>
+						<DialogActions>
+							<Button
+								onClick={handleCloseAfterSuccess}
+								color="primary"
+								autoFocus
+							>
+								Close
+							</Button>
+						</DialogActions>
+					</>
+				)}
+			</Dialog>
+			<Modal
+				open={open}
+				onClose={onClose}
+				aria-labelledby="recipe-detail-modal"
+			>
+				<Paper
 					sx={{
-						bgcolor: "#EB5A3C",
-						color: "white",
-						py: 2,
-						px: 3,
-						position: "relative",
-						borderTopLeftRadius: 8,
-						borderTopRightRadius: 8,
+						position: "absolute",
+						top: "50%",
+						left: "50%",
+						transform: "translate(-50%, -50%)",
+						width: { xs: "90%", sm: "550px", md: "650px" },
+						maxHeight: "85vh",
+						borderRadius: 2,
+						boxShadow: 24,
+						p: 0,
+						overflow: "auto",
+						bgcolor: "#fafafa",
 					}}
 				>
-					{isEditing ? (
-						<TextField
-							fullWidth
-							name="title"
-							value={editFormState.title}
-							onChange={handleChange}
-							variant="standard"
-							autoFocus
-							InputProps={{
-								style: {
-									color: "white",
-									fontSize: "1.5rem",
-									fontWeight: 500,
-								},
-							}}
-							sx={{ mb: 1 }}
-						/>
-					) : (
-						<Typography
-							variant="h5"
-							component="h2"
-							sx={{ fontWeight: 500, mr: 4 }}
-						>
-							{recipe?.title}
-						</Typography>
-					)}
-
-					<IconButton
-						aria-label="close"
-						onClick={onClose}
-						sx={{
-							position: "absolute",
-							right: 8,
-							top: 8,
-							color: "white",
-						}}
-					>
-						<CloseIcon />
-					</IconButton>
-				</Box>
-
-				{isLoading && (
+					{/* Header with colored background */}
 					<Box
 						sx={{
-							display: "flex",
-							justifyContent: "center",
-							py: 6,
+							bgcolor: "#EB5A3C",
+							color: "white",
+							py: 2,
+							px: 3,
+							position: "relative",
+							borderTopLeftRadius: 8,
+							borderTopRightRadius: 8,
 						}}
 					>
-						<CircularProgress sx={{ color: "#EB5A3C" }} />
-					</Box>
-				)}
+						{isEditing ? (
+							<TextField
+								fullWidth
+								name="title"
+								value={editFormState.title}
+								onChange={handleChange}
+								variant="standard"
+								autoFocus
+								InputProps={{
+									style: {
+										color: "white",
+										fontSize: "1.5rem",
+										fontWeight: 500,
+									},
+								}}
+								sx={{ mb: 1 }}
+							/>
+						) : (
+							<Typography
+								variant="h5"
+								component="h2"
+								sx={{ fontWeight: 500, mr: 4 }}
+							>
+								{recipe?.title}
+							</Typography>
+						)}
 
-				{!isLoading && !recipe && serverError && (
-					<Box sx={{ p: 3 }}>
-						<Typography color="error" align="center" variant="h6">
-							Error loading recipe
-						</Typography>
-						<Typography color="text.secondary" align="center">
-							{serverError}
-						</Typography>
+						<IconButton
+							aria-label="close"
+							onClick={onClose}
+							sx={{
+								position: "absolute",
+								right: 8,
+								top: 8,
+								color: "white",
+							}}
+						>
+							<CloseIcon />
+						</IconButton>
 					</Box>
-				)}
 
-				{!isLoading && recipe && (
-					<>
+					{isLoading && (
+						<Box
+							sx={{
+								display: "flex",
+								justifyContent: "center",
+								py: 6,
+							}}
+						>
+							<CircularProgress sx={{ color: "#EB5A3C" }} />
+						</Box>
+					)}
+
+					{!isLoading && !recipe && serverError && (
 						<Box sx={{ p: 3 }}>
-							{/* Recipe metadata in a grid */}
-							<Grid container spacing={2} sx={{ mb: 3 }}>
-								<Grid item xs={6} sm={3}>
-									<Stack
-										direction="row"
-										alignItems="center"
-										spacing={1}
-									>
-										<AccessTimeIcon color="primary" />
-										{isEditing ? (
-											<TextField
-												name="preparationTime"
-												label="Prep Time"
-												type="number"
-												value={
-													editFormState.preparationTime
-												}
-												onChange={handleChange}
-												variant="outlined"
-												size="small"
-												fullWidth
-												InputProps={{
-													inputProps: { min: 1 },
-												}}
-											/>
-										) : (
-											<Typography>
-												{recipe.preparationTime} min
-											</Typography>
-										)}
-									</Stack>
-								</Grid>
+							<Typography color="error" align="center" variant="h6">
+								Error loading recipe
+							</Typography>
+							<Typography color="text.secondary" align="center">
+								{serverError}
+							</Typography>
+						</Box>
+					)}
 
-								<Grid item xs={6} sm={3}>
-									<Stack
-										direction="row"
-										alignItems="center"
-										spacing={1}
-									>
-										<AccessTimeIcon color="secondary" />
-										{isEditing ? (
-											<TextField
-												name="cookingTime"
-												label="Cook Time"
-												type="number"
-												value={
-													editFormState.cookingTime
-												}
-												onChange={handleChange}
-												variant="outlined"
-												size="small"
-												fullWidth
-												InputProps={{
-													inputProps: { min: 1 },
-												}}
-											/>
-										) : (
-											<Typography>
-												{recipe.cookingTime} min
-											</Typography>
-										)}
-									</Stack>
-								</Grid>
-
-								<Grid item xs={6} sm={3}>
-									<Stack
-										direction="row"
-										alignItems="center"
-										spacing={1}
-									>
-										<RestaurantIcon
-											sx={{ color: "#2e7d32" }}
-										/>
-										{isEditing ? (
-											<TextField
-												name="servings"
-												label="Servings"
-												type="number"
-												value={editFormState.servings}
-												onChange={handleChange}
-												variant="outlined"
-												size="small"
-												fullWidth
-												InputProps={{
-													inputProps: { min: 1 },
-												}}
-											/>
-										) : (
-											<Typography>
-												{recipe.servings} servings
-											</Typography>
-										)}
-									</Stack>
-								</Grid>
-
-								<Grid item xs={6} sm={3}>
-									<Stack
-										direction="row"
-										alignItems="center"
-										spacing={1}
-									>
-										<SignalCellularAltIcon
-											sx={{
-												color: getDifficultyColor(
-													recipe.difficultyLevel
-												),
-											}}
-										/>
-										{isEditing ? (
-											<FormControl fullWidth size="small">
-												<InputLabel id="difficulty-label">
-													Difficulty
-												</InputLabel>
-												<Select
-													labelId="difficulty-label"
+					{!isLoading && recipe && (
+						<>
+							<Box sx={{ p: 3 }}>
+								{/* Recipe metadata in a grid */}
+								<Grid container spacing={2} sx={{ mb: 3 }}>
+									<Grid item xs={6} sm={3}>
+										<Stack
+											direction="row"
+											alignItems="center"
+											spacing={1}
+										>
+											<AccessTimeIcon color="primary" />
+											{isEditing ? (
+												<TextField
+													name="preparationTime"
+													label="Prep Time"
+													type="number"
 													value={
-														editFormState.difficultyLevel
+														editFormState.preparationTime
 													}
-													label="Difficulty"
-													onChange={
-														handleDifficultyChange
+													onChange={handleChange}
+													variant="outlined"
+													size="small"
+													fullWidth
+													InputProps={{
+														inputProps: { min: 1 },
+													}}
+												/>
+											) : (
+												<Typography>
+													{recipe.preparationTime} min
+												</Typography>
+											)}
+										</Stack>
+									</Grid>
+
+									<Grid item xs={6} sm={3}>
+										<Stack
+											direction="row"
+											alignItems="center"
+											spacing={1}
+										>
+											<AccessTimeIcon color="secondary" />
+											{isEditing ? (
+												<TextField
+													name="cookingTime"
+													label="Cook Time"
+													type="number"
+													value={
+														editFormState.cookingTime
 													}
-												>
-													<MenuItem value="EASY">
-														Easy
-													</MenuItem>
-													<MenuItem value="MEDIUM">
-														Medium
-													</MenuItem>
-													<MenuItem value="HARD">
-														Hard
-													</MenuItem>
-												</Select>
-											</FormControl>
-										) : (
-											<Chip
-												label={recipe.difficultyLevel}
-												size="small"
+													onChange={handleChange}
+													variant="outlined"
+													size="small"
+													fullWidth
+													InputProps={{
+														inputProps: { min: 1 },
+													}}
+												/>
+											) : (
+												<Typography>
+													{recipe.cookingTime} min
+												</Typography>
+											)}
+										</Stack>
+									</Grid>
+
+									<Grid item xs={6} sm={3}>
+										<Stack
+											direction="row"
+											alignItems="center"
+											spacing={1}
+										>
+											<RestaurantIcon
+												sx={{ color: "#2e7d32" }}
+											/>
+											{isEditing ? (
+												<TextField
+													name="servings"
+													label="Servings"
+													type="number"
+													value={editFormState.servings}
+													onChange={handleChange}
+													variant="outlined"
+													size="small"
+													fullWidth
+													InputProps={{
+														inputProps: { min: 1 },
+													}}
+												/>
+											) : (
+												<Typography>
+													{recipe.servings} servings
+												</Typography>
+											)}
+										</Stack>
+									</Grid>
+
+									<Grid item xs={6} sm={3}>
+										<Stack
+											direction="row"
+											alignItems="center"
+											spacing={1}
+										>
+											<SignalCellularAltIcon
 												sx={{
-													bgcolor: getDifficultyColor(
+													color: getDifficultyColor(
 														recipe.difficultyLevel
 													),
-													color: "white",
-													fontWeight: 500,
 												}}
 											/>
-										)}
-									</Stack>
-								</Grid>
-							</Grid>
-
-							{/* Meal Types Section */}
-							<Box sx={{ mb: 2 }}>
-								<Stack
-									direction="row"
-									alignItems="center"
-									spacing={1}
-									sx={{ mb: 1 }}
-								>
-									<LocalDiningIcon
-										sx={{ color: "#9c27b0" }}
-									/>
-									<Typography
-										variant="subtitle1"
-										fontWeight="medium"
-									>
-										Meal Types
-									</Typography>
-								</Stack>
-
-								{isEditing ? (
-									<FormControl fullWidth sx={{ mb: 2 }}>
-										<InputLabel id="meal-type-label">
-											Meal Types
-										</InputLabel>
-										<Select
-											labelId="meal-type-label"
-											id="meal-type-select"
-											multiple
-											value={selectedMealTypes}
-											onChange={handleMealTypeChange}
-											input={
-												<OutlinedInput label="Meal Types" />
-											}
-											renderValue={(selected) => (
-												<Box
-													sx={{
-														display: "flex",
-														flexWrap: "wrap",
-														gap: 0.5,
-													}}
-												>
-													{selected.map((value) => {
-														const mealType =
-															availableMealTypes.find(
-																(mt) =>
-																	mt.mealTypeId ===
-																	value
-															);
-														return mealType ? (
-															<Chip
-																key={value}
-																label={
-																	mealType.name
-																}
-																size="small"
-															/>
-														) : null;
-													})}
-												</Box>
-											)}
-										>
-											{availableMealTypes.map(
-												(mealType) => (
-													<MenuItem
-														key={
-															mealType.mealTypeId
-														}
+											{isEditing ? (
+												<FormControl fullWidth size="small">
+													<InputLabel id="difficulty-label">
+														Difficulty
+													</InputLabel>
+													<Select
+														labelId="difficulty-label"
 														value={
-															mealType.mealTypeId
+															editFormState.difficultyLevel
+														}
+														label="Difficulty"
+														onChange={
+															handleDifficultyChange
 														}
 													>
-														<Checkbox
-															checked={
-																selectedMealTypes.indexOf(
-																	mealType.mealTypeId
-																) > -1
-															}
-														/>
-														<ListItemText
-															primary={
-																mealType.name
-															}
-														/>
-													</MenuItem>
-												)
-											)}
-										</Select>
-									</FormControl>
-								) : (
-									<Box
-										sx={{
-											display: "flex",
-											gap: 1,
-											flexWrap: "wrap",
-										}}
-									>
-										{recipe.mealTypes &&
-										recipe.mealTypes.length > 0 ? (
-											recipe.mealTypes.map((mealType) => (
+														<MenuItem value="EASY">
+															Easy
+														</MenuItem>
+														<MenuItem value="MEDIUM">
+															Medium
+														</MenuItem>
+														<MenuItem value="HARD">
+															Hard
+														</MenuItem>
+													</Select>
+												</FormControl>
+											) : (
 												<Chip
-													key={mealType.mealTypeId}
-													label={mealType.name}
+													label={recipe.difficultyLevel}
 													size="small"
-													color="secondary"
+													sx={{
+														bgcolor: getDifficultyColor(
+															recipe.difficultyLevel
+														),
+														color: "white",
+														fontWeight: 500,
+													}}
 												/>
-											))
-										) : (
-											<Typography
-												variant="body2"
-												color="text.secondary"
-											>
-												No meal types specified
-											</Typography>
-										)}
-									</Box>
-								)}
-							</Box>
+											)}
+										</Stack>
+									</Grid>
+								</Grid>
 
-							{/* Ingredients Section */}
-							<Box sx={{ mb: 2 }}>
-								<Stack
-									direction="row"
-									alignItems="center"
-									spacing={1}
-									sx={{ mb: 1 }}
-								>
-									<KitchenIcon sx={{ color: "#2196f3" }} />
-									<Typography
-										variant="subtitle1"
-										fontWeight="medium"
+								{/* Meal Types Section */}
+								<Box sx={{ mb: 2 }}>
+									<Stack
+										direction="row"
+										alignItems="center"
+										spacing={1}
+										sx={{ mb: 1 }}
 									>
-										Ingredients
-									</Typography>
-								</Stack>
+										<LocalDiningIcon
+											sx={{ color: "#9c27b0" }}
+										/>
+										<Typography
+											variant="subtitle1"
+											fontWeight="medium"
+										>
+											Meal Types
+										</Typography>
+									</Stack>
 
-								{loadingIngredients ? (
-									<Box
-										sx={{
-											display: "flex",
-											justifyContent: "center",
-											my: 2,
-										}}
-									>
-										<CircularProgress size={24} />
-									</Box>
-								) : isEditing ? (
-									<Paper
-										variant="outlined"
-										sx={{ p: 2, mb: 2 }}
-									>
-										{ingredients.map(
-											(ingredient, index) => (
-												<Grid
-													container
-													spacing={2}
-													key={index}
-													sx={{ mb: 1 }}
-												>
-													<Grid item xs={5}>
-														<TextField
-															fullWidth
-															label="Ingredient Name"
-															value={
-																ingredient.name
-															}
-															onChange={(e) =>
-																handleIngredientChange(
-																	index,
-																	"name",
-																	e.target
-																		.value
-																)
-															}
-															size="small"
-															required
-														/>
-													</Grid>
-													<Grid item xs={5}>
-														<TextField
-															fullWidth
-															label="Quantity"
-															value={
-																ingredient.quantity
-															}
-															onChange={(e) =>
-																handleIngredientChange(
-																	index,
-																	"quantity",
-																	e.target
-																		.value
-																)
-															}
-															size="small"
-															required
-														/>
-													</Grid>
-													<Grid
-														item
-														xs={2}
+									{isEditing ? (
+										<FormControl fullWidth sx={{ mb: 2 }}>
+											<InputLabel id="meal-type-label">
+												Meal Types
+											</InputLabel>
+											<Select
+												labelId="meal-type-label"
+												id="meal-type-select"
+												multiple
+												value={selectedMealTypes}
+												onChange={handleMealTypeChange}
+												input={
+													<OutlinedInput label="Meal Types" />
+												}
+												renderValue={(selected) => (
+													<Box
 														sx={{
 															display: "flex",
-															alignItems:
-																"center",
+															flexWrap: "wrap",
+															gap: 0.5,
 														}}
 													>
-														<IconButton
-															onClick={() =>
-																handleRemoveIngredient(
-																	index
-																)
+														{selected.map((value) => {
+															const mealType =
+																availableMealTypes.find(
+																	(mt) =>
+																		mt.mealTypeId ===
+																		value
+																);
+															return mealType ? (
+																<Chip
+																	key={value}
+																	label={
+																		mealType.name
+																	}
+																	size="small"
+																/>
+															) : null;
+														})}
+													</Box>
+												)}
+											>
+												{availableMealTypes.map(
+													(mealType) => (
+														<MenuItem
+															key={
+																mealType.mealTypeId
 															}
-															color="error"
-															size="small"
+															value={
+																mealType.mealTypeId
+															}
 														>
-															<DeleteIcon />
-														</IconButton>
-													</Grid>
-													{index <
-														ingredients.length -
-															1 && (
-														<Grid item xs={12}>
-															<Divider
-																sx={{ my: 1 }}
+															<Checkbox
+																checked={
+																	selectedMealTypes.indexOf(
+																		mealType.mealTypeId
+																	) > -1
+																}
+															/>
+															<ListItemText
+																primary={
+																	mealType.name
+																}
+															/>
+														</MenuItem>
+													)
+												)}
+											</Select>
+										</FormControl>
+									) : (
+										<Box
+											sx={{
+												display: "flex",
+												gap: 1,
+												flexWrap: "wrap",
+											}}
+										>
+											{recipe.mealTypes &&
+												recipe.mealTypes.length > 0 ? (
+												recipe.mealTypes.map((mealType) => (
+													<Chip
+														key={mealType.mealTypeId}
+														label={mealType.name}
+														size="small"
+														color="secondary"
+													/>
+												))
+											) : (
+												<Typography
+													variant="body2"
+													color="text.secondary"
+												>
+													No meal types specified
+												</Typography>
+											)}
+										</Box>
+									)}
+								</Box>
+
+								{/* Ingredients Section */}
+								<Box sx={{ mb: 2 }}>
+									<Stack
+										direction="row"
+										alignItems="center"
+										spacing={1}
+										sx={{ mb: 1 }}
+									>
+										<KitchenIcon sx={{ color: "#2196f3" }} />
+										<Typography
+											variant="subtitle1"
+											fontWeight="medium"
+										>
+											Ingredients
+										</Typography>
+									</Stack>
+
+									{loadingIngredients ? (
+										<Box
+											sx={{
+												display: "flex",
+												justifyContent: "center",
+												my: 2,
+											}}
+										>
+											<CircularProgress size={24} />
+										</Box>
+									) : isEditing ? (
+										<Paper
+											variant="outlined"
+											sx={{ p: 2, mb: 2 }}
+										>
+											{ingredients.map(
+												(ingredient, index) => (
+													<Grid
+														container
+														spacing={2}
+														key={index}
+														sx={{ mb: 1 }}
+													>
+														<Grid item xs={5}>
+															<TextField
+																fullWidth
+																label="Ingredient Name"
+																value={
+																	ingredient.name
+																}
+																onChange={(e) =>
+																	handleIngredientChange(
+																		index,
+																		"name",
+																		e.target
+																			.value
+																	)
+																}
+																size="small"
+																required
 															/>
 														</Grid>
-													)}
-												</Grid>
-											)
-										)}
-										<Button
-											startIcon={<AddIcon />}
-											onClick={handleAddIngredient}
-											variant="outlined"
-											size="small"
-											sx={{ mt: 1 }}
-										>
-											Add Ingredient
-										</Button>
-									</Paper>
-								) : (
-									<Box sx={{ mb: 3 }}>
-										{ingredients &&
-										ingredients.length > 0 ? (
-											<Paper
-												variant="outlined"
-												sx={{ p: 2 }}
-											>
-												<Grid container spacing={1}>
-													{ingredients.map(
-														(ingredient, index) => (
-															<Grid
-																item
-																xs={12}
-																key={index}
+														<Grid item xs={5}>
+															<TextField
+																fullWidth
+																label="Quantity"
+																value={
+																	ingredient.quantity
+																}
+																onChange={(e) =>
+																	handleIngredientChange(
+																		index,
+																		"quantity",
+																		e.target
+																			.value
+																	)
+																}
+																size="small"
+																required
+															/>
+														</Grid>
+														<Grid
+															item
+															xs={2}
+															sx={{
+																display: "flex",
+																alignItems:
+																	"center",
+															}}
+														>
+															<IconButton
+																onClick={() =>
+																	handleRemoveIngredient(
+																		index
+																	)
+																}
+																color="error"
+																size="small"
 															>
-																<Stack
-																	direction="row"
-																	justifyContent="space-between"
-																	alignItems="center"
-																	sx={{
-																		borderBottom:
-																			index <
-																			ingredients.length -
-																				1
-																				? "1px solid #eee"
-																				: "none",
-																		py: 1,
-																	}}
-																>
-																	<Typography variant="body1">
-																		{
-																			ingredient.name
-																		}
-																	</Typography>
-																	<Typography
-																		variant="body2"
-																		color="text.secondary"
-																	>
-																		{
-																			ingredient.quantity
-																		}
-																	</Typography>
-																</Stack>
-															</Grid>
-														)
-													)}
-												</Grid>
-											</Paper>
-										) : (
-											<Typography
-												variant="body2"
-												color="text.secondary"
+																<DeleteIcon />
+															</IconButton>
+														</Grid>
+														{index <
+															ingredients.length -
+															1 && (
+																<Grid item xs={12}>
+																	<Divider
+																		sx={{ my: 1 }}
+																	/>
+																</Grid>
+															)}
+													</Grid>
+												)
+											)}
+											<Button
+												startIcon={<AddIcon />}
+												onClick={handleAddIngredient}
+												variant="outlined"
+												size="small"
+												sx={{ mt: 1 }}
 											>
-												No ingredients specified
-											</Typography>
-										)}
-									</Box>
-								)}
-							</Box>
+												Add Ingredient
+											</Button>
+										</Paper>
+									) : (
+										<Box sx={{ mb: 3 }}>
+											{ingredients &&
+												ingredients.length > 0 ? (
+												<Paper
+													variant="outlined"
+													sx={{ p: 2 }}
+												>
+													<Grid container spacing={1}>
+														{ingredients.map(
+															(ingredient, index) => (
+																<Grid
+																	item
+																	xs={12}
+																	key={index}
+																>
+																	<Stack
+																		direction="row"
+																		justifyContent="space-between"
+																		alignItems="center"
+																		sx={{
+																			borderBottom:
+																				index <
+																					ingredients.length -
+																					1
+																					? "1px solid #eee"
+																					: "none",
+																			py: 1,
+																		}}
+																	>
+																		<Typography variant="body1">
+																			{
+																				ingredient.name
+																			}
+																		</Typography>
+																		<Typography
+																			variant="body2"
+																			color="text.secondary"
+																		>
+																			{
+																				ingredient.quantity
+																			}
+																		</Typography>
+																	</Stack>
+																</Grid>
+															)
+														)}
+													</Grid>
+												</Paper>
+											) : (
+												<Typography
+													variant="body2"
+													color="text.secondary"
+												>
+													No ingredients specified
+												</Typography>
+											)}
+										</Box>
+									)}
+								</Box>
 
-							<Divider sx={{ my: 2 }} />
+								<Divider sx={{ my: 2 }} />
 
-							<Box sx={{ mb: 2 }}>
-								<Stack
-									direction="row"
-									alignItems="center"
-									spacing={1}
-									sx={{ mb: 1 }}
-								>
-									<PersonIcon sx={{ color: "#0288d1" }} />
+								<Box sx={{ mb: 2 }}>
+									<Stack
+										direction="row"
+										alignItems="center"
+										spacing={1}
+										sx={{ mb: 1 }}
+									>
+										<PersonIcon sx={{ color: "#0288d1" }} />
+										<Typography
+											variant="subtitle1"
+											fontWeight="medium"
+										>
+											Created by {recipe.user.email}
+										</Typography>
+									</Stack>
+
+									<Stack
+										direction="row"
+										alignItems="center"
+										spacing={1}
+									>
+										<DateRangeIcon sx={{ color: "#0288d1" }} />
+										<Typography
+											variant="subtitle2"
+											color="text.secondary"
+										>
+											Created on{" "}
+											{new Date(
+												recipe.createdAt
+											).toLocaleDateString()}
+										</Typography>
+									</Stack>
+								</Box>
+
+								<Divider sx={{ my: 2 }} />
+
+								{/* Recipe steps */}
+								<Box>
 									<Typography
-										variant="subtitle1"
-										fontWeight="medium"
+										variant="h6"
+										gutterBottom
+										sx={{ color: "#EB5A3C" }}
 									>
-										Created by {recipe.user.email}
+										Preparation Steps
 									</Typography>
-								</Stack>
 
-								<Stack
-									direction="row"
-									alignItems="center"
-									spacing={1}
+									{isEditing ? (
+										<TextField
+											name="steps"
+											value={editFormState.steps}
+											onChange={handleChange}
+											variant="outlined"
+											multiline
+											rows={6}
+											fullWidth
+											placeholder="Enter step-by-step instructions"
+											error={
+												editFormState.steps?.trim() === ""
+											}
+											helperText={
+												editFormState.steps?.trim() === ""
+													? "Preparation steps cannot be empty"
+													: ""
+											}
+											required
+										/>
+									) : (
+										<Typography
+											variant="body1"
+											sx={{
+												whiteSpace: "pre-wrap",
+												bgcolor: "white",
+												p: 2,
+												borderRadius: 1,
+												border: "1px solid #e0e0e0",
+											}}
+										>
+											{recipe.steps ||
+												"No steps provided for this recipe."}
+										</Typography>
+									)}
+								</Box>
+
+								{/* Action buttons */}
+								<Box
+									sx={{
+										mt: 3,
+										display: "flex",
+										justifyContent: "flex-end",
+										gap: 1,
+									}}
 								>
-									<DateRangeIcon sx={{ color: "#0288d1" }} />
-									<Typography
-										variant="subtitle2"
-										color="text.secondary"
-									>
-										Created on{" "}
-										{new Date(
-											recipe.createdAt
-										).toLocaleDateString()}
-									</Typography>
-								</Stack>
-							</Box>
+									{isOwner && !isEditing && (
+										<>
+											<Button
+												variant="outlined"
+												color="primary"
+												startIcon={<EditIcon />}
+												onClick={handleStartEditing}
+											>
+												Edit Recipe
+											</Button>
+											<Button
+												variant="outlined"
+												color="error"
+												startIcon={<DeleteIcon />}
+												onClick={() => setDeleteModalOpen(true)}
+											>
+												Delete Recipe
+											</Button>
+										</>
 
-							<Divider sx={{ my: 2 }} />
+									)}
 
-							{/* Recipe steps */}
-							<Box>
-								<Typography
-									variant="h6"
-									gutterBottom
-									sx={{ color: "#EB5A3C" }}
-								>
-									Preparation Steps
-								</Typography>
+									{isEditing && (
+										<>
+											<Button
+												variant="outlined"
+												color="inherit"
+												onClick={handleCancelEditing}
+												disabled={isSaving}
+											>
+												Cancel
+											</Button>
+											<Button
+												variant="contained"
+												color="primary"
+												onClick={handleSaveEditing}
+												disabled={isSaving}
+												sx={{
+													bgcolor: "#EB5A3C",
+													"&:hover": {
+														bgcolor: "#d23c22",
+													},
+												}}
+											>
+												{isSaving
+													? "Saving..."
+													: "Save Changes"}
+											</Button>
+										</>
+									)}
 
-								{isEditing ? (
-									<TextField
-										name="steps"
-										value={editFormState.steps}
-										onChange={handleChange}
-										variant="outlined"
-										multiline
-										rows={6}
-										fullWidth
-										placeholder="Enter step-by-step instructions"
-										error={
-											editFormState.steps?.trim() === ""
-										}
-										helperText={
-											editFormState.steps?.trim() === ""
-												? "Preparation steps cannot be empty"
-												: ""
-										}
-										required
-									/>
-								) : (
-									<Typography
-										variant="body1"
-										sx={{
-											whiteSpace: "pre-wrap",
-											bgcolor: "white",
-											p: 2,
-											borderRadius: 1,
-											border: "1px solid #e0e0e0",
-										}}
-									>
-										{recipe.steps ||
-											"No steps provided for this recipe."}
-									</Typography>
-								)}
-							</Box>
-
-							{/* Action buttons */}
-							<Box
-								sx={{
-									mt: 3,
-									display: "flex",
-									justifyContent: "flex-end",
-									gap: 1,
-								}}
-							>
-								{isOwner && !isEditing && (
-									<Button
-										variant="outlined"
-										color="primary"
-										startIcon={<EditIcon />}
-										onClick={handleStartEditing}
-									>
-										Edit Recipe
-									</Button>
-								)}
-
-								{isEditing && (
-									<>
+									{!isEditing && (
 										<Button
 											variant="outlined"
 											color="inherit"
-											onClick={handleCancelEditing}
-											disabled={isSaving}
+											onClick={onClose}
 										>
-											Cancel
+											Close
 										</Button>
-										<Button
-											variant="contained"
-											color="primary"
-											onClick={handleSaveEditing}
-											disabled={isSaving}
-											sx={{
-												bgcolor: "#EB5A3C",
-												"&:hover": {
-													bgcolor: "#d23c22",
-												},
-											}}
-										>
-											{isSaving
-												? "Saving..."
-												: "Save Changes"}
-										</Button>
-									</>
-								)}
-
-								{!isEditing && (
-									<Button
-										variant="outlined"
-										color="inherit"
-										onClick={onClose}
-									>
-										Close
-									</Button>
-								)}
+									)}
+								</Box>
 							</Box>
-						</Box>
-					</>
-				)}
-			</Paper>
-		</Modal>
+						</>
+					)}
+				</Paper>
+			</Modal>
+		</>
 	);
 }
 

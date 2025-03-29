@@ -114,6 +114,7 @@ function RecipeCard(props: RecipeType) {
 	const [isHovered, setIsHovered] = useState(false);
 	const [ingredients, setIngredients] = useState<RecipeIngredient[]>([]);
 	const { sendRequest, serverError } = useHttpClient();
+	const [isDeleted, setIsDeleted] = useState(false);
 
 	useEffect(() => {
 		// Fetch ingredients for this recipe
@@ -144,6 +145,15 @@ function RecipeCard(props: RecipeType) {
 
 	// Get total time (prep + cooking)
 	const totalTime = props.preparationTime + props.cookingTime;
+
+	const handleRecipeDeleted = (deletedId: number) => {
+		setIsDeleted(true); // Trigger unmount
+		onCloseDetail();
+	};
+
+	const onCloseDetail = () => setDetailOpen(false);
+
+	if (isDeleted) return null; // This unmounts the component
 
 	return (
 		<>
@@ -335,6 +345,7 @@ function RecipeCard(props: RecipeType) {
 				recipeId={props.recipeId}
 				open={detailOpen}
 				onClose={handleCloseDetail}
+				onRecipeDeleted={handleRecipeDeleted}
 			/>
 		</>
 	);
