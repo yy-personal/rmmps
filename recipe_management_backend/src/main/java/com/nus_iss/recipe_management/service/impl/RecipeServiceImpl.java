@@ -374,6 +374,7 @@ public class RecipeServiceImpl implements RecipeService {
 
 
     /******************************** Modify Recipe Dietary Restrictions ********************************/
+    @Override
     @Transactional
     public void addDietaryRestrictionsToRecipe(Integer recipeId, List<Integer> dietaryRestrictionIds) {
         Recipe recipe = recipeRepository.findById(recipeId)
@@ -407,7 +408,7 @@ public class RecipeServiceImpl implements RecipeService {
 
         recipeDietaryRestrictionMappingRepository.saveAll(mappings);
     }
-
+    @Override
     @Transactional
     public void removeDietaryRestrictionsFromRecipe(Integer recipeId, List<Integer> dietaryRestrictionIds) {
         Recipe recipe = recipeRepository.findById(recipeId)
