@@ -27,7 +27,15 @@ export const useHttpClient = () => {
           signal: httpAbortCtrl.signal,
         });
 
-        const responseData = await response.json();
+        let responseData;
+
+        // try parse json
+        try {
+          responseData = await response.json();
+        } catch {
+          // not json? who cares! not me
+          // this is here because i'm too lazy to return a json for delete requests
+        }
 
         activeHttpRequests.current = activeHttpRequests.current.filter(
           (reqCtrl) => reqCtrl !== httpAbortCtrl
