@@ -66,12 +66,6 @@ function Header() {
 			description: "Manage your shopping lists",
 		},
 		{
-			name: "shopping",
-			label: "Shopping Lists",
-			icon: <ShoppingCartIcon sx={{ mr: 1 }} />,
-			description: "Manage your shopping lists",
-		},
-		{
 			name: "meals",
 			label: "Meal Plans",
 			icon: <CalendarTodayIcon sx={{ mr: 1 }} />,
