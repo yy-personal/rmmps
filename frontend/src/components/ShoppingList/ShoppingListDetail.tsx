@@ -65,6 +65,11 @@ function ShoppingListDetail() {
 	const [loadingItemIds, setLoadingItemIds] = useState<Set<number>>(
 		new Set()
 	);
+	useEffect(() => {
+		return () => {
+			sessionStorage.setItem("returnToShoppingList", "true");
+		};
+	}, []);
 
 	useEffect(() => {
 		fetchShoppingList();
@@ -192,6 +197,7 @@ function ShoppingListDetail() {
 	};
 
 	const handleGoBack = () => {
+		sessionStorage.setItem("returnToShoppingList", "true");
 		navigate("/shopping");
 	};
 
