@@ -51,7 +51,15 @@ function CreateShoppingList() {
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [showValidationError, setShowValidationError] = useState(false);
 	const [fetchError, setFetchError] = useState<string | null>(null);
+	const [submitError, setSubmitError] = useState<string | null>(null);
 	const isMounted = useRef(true);
+
+	// If not logged in, redirect to login
+	useEffect(() => {
+		if (!auth.isLoggedIn) {
+			navigate("/login");
+		}
+	}, [auth.isLoggedIn, navigate]);
 
 	// Ensure we don't update state after component unmounts
 	useEffect(() => {
@@ -73,7 +81,7 @@ function CreateShoppingList() {
 	const fetchRecipes = async () => {
 		setFetchError(null);
 		try {
-			// Try a direct fetch approach without using the hook first
+			// Log API URL for debugging
 			console.log(
 				"Fetching recipes from:",
 				`${process.env.REACT_APP_BACKEND_URL}/recipes`
@@ -174,6 +182,7 @@ function CreateShoppingList() {
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
+		setSubmitError(null);
 
 		// Validate form
 		if (!title.trim() || selectedRecipes.length === 0) {
@@ -189,8 +198,11 @@ function CreateShoppingList() {
 				recipeIds: selectedRecipes,
 			});
 
+			const apiUrl = `${process.env.REACT_APP_BACKEND_URL}/shopping-lists`;
+			console.log("API endpoint:", apiUrl);
+
 			const responseData = await sendRequest(
-				`${process.env.REACT_APP_BACKEND_URL}/shopping-lists`,
+				apiUrl,
 				"POST",
 				JSON.stringify({
 					title: title,
@@ -205,9 +217,16 @@ function CreateShoppingList() {
 			console.log("Shopping list created:", responseData);
 
 			// Navigate to the new shopping list
-			navigate(`/shopping/${responseData.id}`);
+			if (responseData && responseData.id) {
+				navigate(`/shopping/${responseData.id}`);
+			} else {
+				setSubmitError(
+					"Created shopping list but received invalid response format"
+				);
+			}
 		} catch (err) {
 			console.error("Error creating shopping list:", err);
+			setSubmitError(serverError || "Failed to create shopping list");
 			setIsSubmitting(false);
 		}
 	};
@@ -215,6 +234,11 @@ function CreateShoppingList() {
 	const handleGoBack = () => {
 		navigate("/shopping");
 	};
+
+	// If not logged in, don't render the component
+	if (!auth.isLoggedIn) {
+		return null; // The useEffect will redirect to login
+	}
 
 	return (
 		<Box sx={{ padding: 3, minHeight: "calc(100vh - 70px)" }}>
@@ -230,6 +254,12 @@ function CreateShoppingList() {
 					Create Shopping List
 				</Typography>
 			</Box>
+
+			{submitError && (
+				<Alert severity="error" sx={{ mb: 3 }}>
+					{submitError}
+				</Alert>
+			)}
 
 			<Box component="form" onSubmit={handleSubmit}>
 				<Paper elevation={2} sx={{ p: 3, mb: 4 }}>

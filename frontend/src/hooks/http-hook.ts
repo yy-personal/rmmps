@@ -21,6 +21,9 @@ export const useHttpClient = () => {
 
       try {
         console.log(`Sending ${method} request to ${url}`);
+        console.log("Request headers:", headers);
+        if (body) console.log("Request body:", body);
+
         const response = await fetch(url, {
           method,
           body,
@@ -33,25 +36,44 @@ export const useHttpClient = () => {
           (reqCtrl) => reqCtrl !== httpAbortCtrl
         );
 
+        console.log(`Response status: ${response.status}`);
+        setStatusCode(response.status);
+
+        // For debugging, log all headers
+        console.log("Response headers:");
+        response.headers.forEach((value, key) => {
+          console.log(`${key}: ${value}`);
+        });
+
         let responseData;
 
-        // Try to parse response as JSON if it's not empty
+        // Check content-type header
         const contentType = response.headers.get("content-type");
+        console.log(`Content-Type: ${contentType}`);
+
+        // Try to parse response appropriately
         if (contentType && contentType.includes("application/json")) {
-          const text = await response.text();
-          if (text) {
-            responseData = JSON.parse(text);
+          try {
+            const text = await response.text();
+            console.log("Response text:", text);
+            responseData = text ? JSON.parse(text) : null;
+          } catch (parseErr) {
+            console.error("Failed to parse JSON response:", parseErr);
+            throw new Error("Invalid JSON response from server");
           }
         } else {
+          // Handle non-JSON responses
+          const text = await response.text();
+          console.log("Non-JSON response:", text);
           try {
-            responseData = await response.json();
+            // Try to parse as JSON anyway in case Content-Type is wrong
+            responseData = text ? JSON.parse(text) : null;
           } catch (err) {
-            // If response is not JSON, handle accordingly
-            console.log("Response is not JSON or is empty");
+            // If it's not JSON, just use the text
+            responseData = text || null;
           }
         }
 
-        setStatusCode(response.status);
         if (!response.ok) {
           const errorMessage = responseData?.message ||
             `Request failed with status ${response.status}`;
@@ -59,6 +81,7 @@ export const useHttpClient = () => {
           throw new Error(errorMessage);
         }
 
+        console.log("Parsed response data:", responseData);
         setIsLoading(false);
         return responseData;
       } catch (err) {

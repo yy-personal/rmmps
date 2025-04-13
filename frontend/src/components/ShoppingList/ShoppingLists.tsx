@@ -1,4 +1,4 @@
-import { useEffect, useState, useContext } from "react";
+import { useEffect, useState, useContext, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useHttpClient } from "../../hooks/http-hook";
 import { AuthContext } from "../../contexts/auth-context";
@@ -62,27 +62,106 @@ function ShoppingLists() {
 	const [sortDir, setSortDir] = useState("desc");
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 	const [selectedListId, setSelectedListId] = useState<number | null>(null);
+	const [fetchError, setFetchError] = useState<string | null>(null);
+	const isMounted = useRef(true);
+
+	// Clean up on unmount
+	useEffect(() => {
+		return () => {
+			isMounted.current = false;
+		};
+	}, []);
 
 	useEffect(() => {
-		fetchShoppingLists();
-	}, [page, sortBy, sortDir]);
+		if (auth.isLoggedIn) {
+			fetchShoppingLists();
+		} else {
+			setFetchError("You must be logged in to view shopping lists");
+		}
+	}, [page, sortBy, sortDir, auth.isLoggedIn]);
 
 	const fetchShoppingLists = async () => {
+		setFetchError(null);
 		try {
-			const responseData = await sendRequest(
-				`${process.env.REACT_APP_BACKEND_URL}/shopping-lists?page=${page}&size=${pageSize}&sortBy=${sortBy}&sortDir=${sortDir}`,
-				"GET",
-				null,
-				{
-					Authorization: `Bearer ${auth.accessToken}`,
-				}
+			// Log the full URL for debugging
+			const apiUrl = `${process.env.REACT_APP_BACKEND_URL}/shopping-lists?page=${page}&size=${pageSize}&sortBy=${sortBy}&sortDir=${sortDir}`;
+			console.log("Fetching shopping lists from:", apiUrl);
+			console.log(
+				"Auth token available:",
+				auth.accessToken ? "Yes" : "No"
 			);
-			setShoppingLists(responseData);
-			// If API returns pagination info, update total pages
-			// This depends on your API response structure
-			setTotalPages(Math.ceil(responseData.length / pageSize) || 1);
+
+			// Try a direct fetch first to see full response
+			const response = await fetch(apiUrl, {
+				method: "GET",
+				headers: {
+					Authorization: `Bearer ${auth.accessToken}`,
+				},
+			});
+
+			if (!response.ok) {
+				throw new Error(
+					`Failed to fetch shopping lists: ${response.status} ${response.statusText}`
+				);
+			}
+
+			const data = await response.json();
+			console.log("Shopping list response:", data);
+
+			if (isMounted.current) {
+				if (Array.isArray(data)) {
+					setShoppingLists(data);
+					setTotalPages(Math.ceil(data.length / pageSize) || 1);
+				} else if (
+					data &&
+					data.content &&
+					Array.isArray(data.content)
+				) {
+					// Handle paginated response object
+					setShoppingLists(data.content);
+					setTotalPages(data.totalPages || 1);
+				} else {
+					// Empty or unexpected response format
+					console.warn("Unexpected response format:", data);
+					setShoppingLists([]);
+					setTotalPages(1);
+				}
+			}
 		} catch (err) {
-			console.error(err);
+			console.error("Error fetching shopping lists:", err);
+
+			// Fall back to using the hook
+			try {
+				if (!isMounted.current) return;
+
+				const responseData = await sendRequest(
+					`${process.env.REACT_APP_BACKEND_URL}/shopping-lists?page=${page}&size=${pageSize}&sortBy=${sortBy}&sortDir=${sortDir}`,
+					"GET",
+					null,
+					{
+						Authorization: `Bearer ${auth.accessToken}`,
+					}
+				);
+
+				if (Array.isArray(responseData)) {
+					setShoppingLists(responseData);
+					setTotalPages(
+						Math.ceil(responseData.length / pageSize) || 1
+					);
+				} else if (responseData && responseData.content) {
+					setShoppingLists(responseData.content);
+					setTotalPages(responseData.totalPages || 1);
+				} else {
+					setShoppingLists([]);
+					setTotalPages(1);
+				}
+			} catch (fallbackErr) {
+				if (isMounted.current) {
+					setFetchError(
+						serverError || "Failed to fetch shopping lists"
+					);
+				}
+			}
 		}
 	};
 
@@ -138,7 +217,7 @@ function ShoppingLists() {
 			);
 			handleCloseDeleteDialog();
 		} catch (err) {
-			console.error(err);
+			console.error("Error deleting shopping list:", err);
 		}
 	};
 
@@ -156,6 +235,34 @@ function ShoppingLists() {
 			date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
 		);
 	};
+
+	// If not logged in, show login prompt
+	if (!auth.isLoggedIn) {
+		return (
+			<Box sx={{ padding: 3, minHeight: "calc(100vh - 70px)" }}>
+				<Typography
+					variant="h4"
+					component="h1"
+					sx={{ color: "#EB5A3C", fontWeight: "bold", mb: 3 }}
+				>
+					Shopping Lists
+				</Typography>
+				<Alert severity="info" sx={{ mb: 3 }}>
+					Please log in to view and manage your shopping lists.
+				</Alert>
+				<Button
+					variant="contained"
+					onClick={() => navigate("/login")}
+					sx={{
+						backgroundColor: "#EB5A3C",
+						"&:hover": { backgroundColor: "#d23c22" },
+					}}
+				>
+					Go to Login
+				</Button>
+			</Box>
+		);
+	}
 
 	return (
 		<Box sx={{ padding: 3, minHeight: "calc(100vh - 70px)" }}>
@@ -220,6 +327,10 @@ function ShoppingLists() {
 				<Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
 					<CircularProgress sx={{ color: "#EB5A3C" }} />
 				</Box>
+			) : fetchError ? (
+				<Alert severity="error" sx={{ mb: 3 }}>
+					{fetchError}
+				</Alert>
 			) : serverError ? (
 				<Alert severity="error" sx={{ mb: 3 }}>
 					Error loading shopping lists: {serverError}
