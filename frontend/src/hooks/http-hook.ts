@@ -20,6 +20,7 @@ export const useHttpClient = () => {
       activeHttpRequests.current.push(httpAbortCtrl);
 
       try {
+        console.log(`Sending ${method} request to ${url}`);
         const response = await fetch(url, {
           method,
           body,
@@ -27,32 +28,48 @@ export const useHttpClient = () => {
           signal: httpAbortCtrl.signal,
         });
 
-        let responseData;
-
-        // try parse json
-        try {
-          responseData = await response.json();
-        } catch {
-          // not json? who cares! not me
-          // this is here because i'm too lazy to return a json for delete requests
-        }
-
+        // Remove current abort controller from active list
         activeHttpRequests.current = activeHttpRequests.current.filter(
           (reqCtrl) => reqCtrl !== httpAbortCtrl
         );
 
+        let responseData;
+
+        // Try to parse response as JSON if it's not empty
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          const text = await response.text();
+          if (text) {
+            responseData = JSON.parse(text);
+          }
+        } else {
+          try {
+            responseData = await response.json();
+          } catch (err) {
+            // If response is not JSON, handle accordingly
+            console.log("Response is not JSON or is empty");
+          }
+        }
+
         setStatusCode(response.status);
         if (!response.ok) {
-          throw new Error(
-            responseData.message ||
-              `Unknown error occurred. Status ${response.status}`
-          );
+          const errorMessage = responseData?.message ||
+            `Request failed with status ${response.status}`;
+          console.error(`Error response:`, errorMessage);
+          throw new Error(errorMessage);
         }
 
         setIsLoading(false);
         return responseData;
       } catch (err) {
-        setServerError(err.message || "Unknown error occurred");
+        // Check if the error is due to an aborted request
+        if (err.name === 'AbortError') {
+          console.log('Request was aborted');
+          // Don't set error state for aborted requests
+        } else {
+          console.error(`Request error:`, err);
+          setServerError(err.message || "Unknown error occurred");
+        }
         setIsLoading(false);
         throw err;
       }
@@ -60,6 +77,7 @@ export const useHttpClient = () => {
     []
   );
 
+  // Cleanup function to abort any in-progress requests when component unmounts
   useEffect(() => {
     return () => {
       activeHttpRequests.current.forEach((abortCtrl) => abortCtrl.abort());

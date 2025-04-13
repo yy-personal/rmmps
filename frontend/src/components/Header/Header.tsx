@@ -60,7 +60,7 @@ function Header() {
 			description: "Explore our collection of recipes",
 		},
 		{
-			name: "shopping",
+			name: "shopping-lists", // Changed from "shopping" to "shopping-lists"
 			label: "Shopping Lists",
 			icon: <ShoppingCartIcon sx={{ mr: 1 }} />,
 			description: "Manage your shopping lists",
