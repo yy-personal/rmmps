@@ -31,14 +31,31 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @Override
-    public NotificationPreferences updatePreferences(NotificationPreferences notificationPreferences) {
+    public NotificationPreferences createPreferences(NotificationPreferences notificationPreferences, Integer userId) {
 
         // 🔐 Get the currently authenticated user's ID
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = ((UserDetails) authentication.getPrincipal()).getUsername();
         User user = userService.findByEmail(username).orElseThrow(() ->
                 new AuthenticationCredentialsNotFoundException("Value not present"));
-        Integer userId = user.getUserId();
+
+        // Check if the authenticated user owns the recipe
+        if (!notificationPreferences.getUser().getUserId().equals(userId)) {
+            throw new AccessDeniedException("You do not have permission to modify this recipe.");
+        }
+
+        notificationPreferences.setUser(user);
+        return repository.save(notificationPreferences);
+    }
+
+    @Override
+    public NotificationPreferences updatePreferences(NotificationPreferences notificationPreferences, Integer userId) {
+
+        // 🔐 Get the currently authenticated user's ID
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = ((UserDetails) authentication.getPrincipal()).getUsername();
+        User user = userService.findByEmail(username).orElseThrow(() ->
+                new AuthenticationCredentialsNotFoundException("User not found"));
 
         // Check if the authenticated user owns the recipe
         if (!notificationPreferences.getUser().getUserId().equals(userId)) {

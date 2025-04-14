@@ -44,8 +44,8 @@ public class UserController {
     @Operation(summary = "Update User Notification Preferences")
     @ApiResponse(responseCode = "200", description = "User notification preferences updated successfully")
     @PostMapping("/{userId}/notification-preferences")
-    public ResponseEntity<NotificationPreferences> updateNotificationPreferences(@RequestBody NotificationPreferences notificationPreferences) {
-        NotificationPreferences updatedNotificationPreferences = notificationService.updatePreferences(notificationPreferences);
+    public ResponseEntity<NotificationPreferences> updateNotificationPreferences(@RequestBody NotificationPreferences notificationPreferences, @RequestParam Integer userId) {
+        NotificationPreferences updatedNotificationPreferences = notificationService.updatePreferences(notificationPreferences, userId);
         return ResponseEntity.ok(updatedNotificationPreferences);
     }
 

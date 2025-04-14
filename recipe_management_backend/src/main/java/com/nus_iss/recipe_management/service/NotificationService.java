@@ -6,5 +6,7 @@ public interface NotificationService {
 
     public NotificationPreferences getPreferences(Integer userId);
 
-    public NotificationPreferences updatePreferences(NotificationPreferences notificationPreferences);
+    public NotificationPreferences createPreferences(NotificationPreferences notificationPreferences, Integer userId);
+
+    public NotificationPreferences updatePreferences(NotificationPreferences notificationPreferences, Integer userId);
 }
