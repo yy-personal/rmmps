@@ -31,6 +31,9 @@ public class User {
     )
     private Set<DietaryRestriction> dietaryRestrictions;
 
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private NotificationPreferences notificationPreferences;
+
     public Integer getUserId() {
         return userId;
     }

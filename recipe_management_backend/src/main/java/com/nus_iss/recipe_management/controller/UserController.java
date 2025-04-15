@@ -1,7 +1,9 @@
 package com.nus_iss.recipe_management.controller;
 
 import com.nus_iss.recipe_management.dto.UserDTO;
+import com.nus_iss.recipe_management.model.NotificationPreferences;
 import com.nus_iss.recipe_management.model.User;
+import com.nus_iss.recipe_management.service.NotificationService;
 import com.nus_iss.recipe_management.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -19,6 +21,7 @@ import java.util.List;
 @Tag(name = "User Controller")
 public class UserController {
     private final UserService userService;
+    private final NotificationService notificationService;
 
     @Operation(summary = "Create a new user")
     @ApiResponse(responseCode = "200", description = "User created successfully")
@@ -26,6 +29,24 @@ public class UserController {
     public ResponseEntity<User> createUser(@RequestBody UserDTO userDTO) {
         User createdUser = userService.createUser(userDTO);
         return ResponseEntity.ok(createdUser);
+    }
+
+
+    @Operation(summary = "Get User Notification Preferences")
+    @ApiResponse(responseCode = "200", description = "Notification Preferences Retrieved")
+    @GetMapping("/{userId}/notification-preferences")
+    public ResponseEntity<NotificationPreferences> getUserNotificationPreferences(
+            @PathVariable Integer userId) {
+        NotificationPreferences notificationPreferences = notificationService.getPreferences(userId);
+        return ResponseEntity.ok(notificationPreferences);
+    }
+
+    @Operation(summary = "Update User Notification Preferences")
+    @ApiResponse(responseCode = "200", description = "User notification preferences updated successfully")
+    @PostMapping("/{userId}/notification-preferences")
+    public ResponseEntity<NotificationPreferences> updateNotificationPreferences(@RequestBody NotificationPreferences notificationPreferences, @RequestParam Integer userId) {
+        NotificationPreferences updatedNotificationPreferences = notificationService.updatePreferences(notificationPreferences, userId);
+        return ResponseEntity.ok(updatedNotificationPreferences);
     }
 
     @Operation(summary = "Get all users")
@@ -74,4 +95,5 @@ public class UserController {
         userService.removeDietaryRestriction(userId, dietaryRestrictionId);
         return ResponseEntity.noContent().build();
     }
+
 }
