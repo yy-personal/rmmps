@@ -60,21 +60,24 @@ function ShoppingListDetail() {
 	const { isLoading, sendRequest, serverError } = useHttpClient();
 	const [shoppingList, setShoppingList] = useState<ShoppingList | null>(null);
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-	const [itemsGroupedByRecipe, setItemsGroupedByRecipe] =
-		useState<GroupedItems>({});
-	const [loadingItemIds, setLoadingItemIds] = useState<Set<number>>(
-		new Set()
-	);
-	useEffect(() => {
-		return () => {
-			sessionStorage.setItem("returnToShoppingList", "true");
-		};
-	}, []);
+	const [itemsGroupedByRecipe, setItemsGroupedByRecipe] = useState<GroupedItems>({});
+	const [loadingItemIds, setLoadingItemIds] = useState<Set<number>>(new Set());
 
+	// Redirect if not logged in
 	useEffect(() => {
-		fetchShoppingList();
-	}, [id]);
+		if (!auth.isLoggedIn) {
+			navigate("/login");
+		}
+	}, [auth.isLoggedIn, navigate]);
 
+	// Fetch shopping list data
+	useEffect(() => {
+		if (auth.isLoggedIn && id) {
+			fetchShoppingList();
+		}
+	}, [id, auth.isLoggedIn]);
+
+	// Group items by recipe when shopping list data changes
 	useEffect(() => {
 		if (shoppingList) {
 			groupItemsByRecipe();
@@ -82,7 +85,7 @@ function ShoppingListDetail() {
 	}, [shoppingList]);
 
 	const fetchShoppingList = async () => {
-		if (!id) return;
+		if (!id || !auth.isLoggedIn) return;
 
 		try {
 			const responseData = await sendRequest(
@@ -95,7 +98,7 @@ function ShoppingListDetail() {
 			);
 			setShoppingList(responseData);
 		} catch (err) {
-			console.error(err);
+			// Error handling is already done in useHttpClient hook
 		}
 	};
 
@@ -129,9 +132,9 @@ function ShoppingListDetail() {
 	};
 
 	const handleTogglePurchased = async (item: ShoppingListItem) => {
-		if (!shoppingList) return;
+		if (!shoppingList || !auth.isLoggedIn) return;
 
-		// Add to loading set
+		// Add to loading set to show spinner
 		setLoadingItemIds((prev) => new Set(prev).add(item.ingredientId));
 
 		try {
@@ -158,7 +161,7 @@ function ShoppingListDetail() {
 				items: updatedItems,
 			});
 		} catch (err) {
-			console.error(err);
+			// Error handling is done in the hook
 		} finally {
 			// Remove from loading set
 			setLoadingItemIds((prev) => {
@@ -178,7 +181,7 @@ function ShoppingListDetail() {
 	};
 
 	const handleDeleteList = async () => {
-		if (!shoppingList) return;
+		if (!shoppingList || !auth.isLoggedIn) return;
 
 		try {
 			await sendRequest(
@@ -192,12 +195,11 @@ function ShoppingListDetail() {
 
 			navigate("/shopping");
 		} catch (err) {
-			console.error(err);
+			// Error handling is done in the hook
 		}
 	};
 
 	const handleGoBack = () => {
-		sessionStorage.setItem("returnToShoppingList", "true");
 		navigate("/shopping");
 	};
 
@@ -219,6 +221,11 @@ function ShoppingListDetail() {
 		).length;
 		return Math.round((purchasedCount / shoppingList.items.length) * 100);
 	};
+
+	// If not logged in, don't render the component
+	if (!auth.isLoggedIn) {
+		return null; // The useEffect will redirect to login
+	}
 
 	return (
 		<Box sx={{ padding: 3, minHeight: "calc(100vh - 70px)" }}>
