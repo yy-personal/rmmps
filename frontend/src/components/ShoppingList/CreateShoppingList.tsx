@@ -1,14 +1,12 @@
-import { useState, useEffect, useContext, useRef } from "react";
-import { useNavigate } from "react-router-dom";
-import { useHttpClient } from "../../hooks/http-hook";
-import { AuthContext } from "../../contexts/auth-context";
+import React, { useState, useEffect, useContext, useCallback } from "react";
+import { useHttpClient } from "../../hooks/http-hook"; // Adjust path if needed
+import { AuthContext } from "../../contexts/auth-context"; // Adjust path if needed
 
 // Material UI imports
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
-import Paper from "@mui/material/Paper";
 import Alert from "@mui/material/Alert";
 import CircularProgress from "@mui/material/CircularProgress";
 import IconButton from "@mui/material/IconButton";
@@ -17,15 +15,28 @@ import Grid from "@mui/material/Grid";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import CardActions from "@mui/material/CardActions";
+import Collapse from "@mui/material/Collapse";
+import List from "@mui/material/List";
+import ListItem from "@mui/material/ListItem";
+import ListItemText from "@mui/material/ListItemText";
+import Divider from "@mui/material/Divider";
+import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
+import DialogContent from "@mui/material/DialogContent";
+import DialogTitle from "@mui/material/DialogTitle";
 
 // Icons
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import SearchIcon from "@mui/icons-material/Search";
 import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
 import ClearIcon from "@mui/icons-material/Clear";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import RestaurantMenuIcon from "@mui/icons-material/RestaurantMenu";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import KitchenIcon from "@mui/icons-material/Kitchen";
+import CloseIcon from "@mui/icons-material/Close";
 
+// Interfaces
 interface Recipe {
 	recipeId: number;
 	title: string;
@@ -39,9 +50,27 @@ interface Recipe {
 	};
 }
 
-function CreateShoppingList() {
+interface RecipeIngredient {
+	ingredientId: number;
+	name: string;
+	quantity: string;
+}
+
+// Component Props
+interface CreateShoppingListModalProps {
+	open: boolean;
+	onClose: () => void;
+	onSuccess?: (newListId: number) => void;
+}
+
+// Refactored Component
+function CreateShoppingListModal({
+	open,
+	onClose,
+	onSuccess,
+}: CreateShoppingListModalProps) {
 	const auth = useContext(AuthContext);
-	const navigate = useNavigate();
+	// Removed clearError from destructuring as it's not in the provided hook
 	const { isLoading, sendRequest, serverError } = useHttpClient();
 	const [title, setTitle] = useState("");
 	const [recipes, setRecipes] = useState<Recipe[]>([]);
@@ -50,116 +79,128 @@ function CreateShoppingList() {
 	const [searchQuery, setSearchQuery] = useState("");
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [showValidationError, setShowValidationError] = useState(false);
-	const [fetchError, setFetchError] = useState<string | null>(null);
+	// Local error state specifically for submission/validation issues within the modal
 	const [submitError, setSubmitError] = useState<string | null>(null);
-	const isMounted = useRef(true);
+	const [expandedRecipeIds, setExpandedRecipeIds] = useState<number[]>([]);
+	const [recipeIngredients, setRecipeIngredients] = useState<{
+		[key: number]: RecipeIngredient[];
+	}>({});
+	const [loadingIngredients, setLoadingIngredients] = useState<number[]>([]);
 
-	// If not logged in, redirect to login
-	useEffect(() => {
-		if (!auth.isLoggedIn) {
-			navigate("/login");
-		}
-	}, [auth.isLoggedIn, navigate]);
+	// State Reset Logic
+	const resetModalState = useCallback(() => {
+		setTitle("");
+		setSelectedRecipes([]);
+		setSearchQuery("");
+		setShowValidationError(false);
+		setSubmitError(null); // Clear local submission errors
+		// serverError from the hook will be reset automatically on the next sendRequest call in the hook
+		setExpandedRecipeIds([]);
+		setRecipeIngredients({});
+		setLoadingIngredients([]);
+		// Keep fetched recipes if desired, or clear them:
+		// setRecipes([]);
+		// setFilteredRecipes([]);
+	}, []); // No dependencies needed here if only setting state
 
-	// Ensure we don't update state after component unmounts
-	useEffect(() => {
-		return () => {
-			isMounted.current = false;
-		};
-	}, []);
+	// Close Handler
+	const handleClose = () => {
+		resetModalState();
+		onClose();
+	};
 
-	useEffect(() => {
-		fetchRecipes();
-	}, []);
+	// Fetch Recipes
+	const fetchRecipes = useCallback(async () => {
+		if (!auth.isLoggedIn || !open) return;
 
-	useEffect(() => {
-		if (recipes.length > 0) {
-			filterRecipes();
-		}
-	}, [searchQuery, recipes]);
-
-	const fetchRecipes = async () => {
-		setFetchError(null);
 		try {
-			// Log API URL for debugging
-			console.log(
-				"Fetching recipes from:",
-				`${process.env.REACT_APP_BACKEND_URL}/recipes`
-			);
-			console.log(
-				"Auth token available:",
-				auth.accessToken ? "Yes" : "No"
-			);
-
-			// Attempt direct fetch first for debugging
-			const response = await fetch(
+			const responseData = await sendRequest(
 				`${process.env.REACT_APP_BACKEND_URL}/recipes`,
-				{
-					method: "GET",
-					headers: auth.accessToken
-						? { Authorization: `Bearer ${auth.accessToken}` }
-						: {},
-				}
+				"GET",
+				null,
+				auth.accessToken
+					? { Authorization: `Bearer ${auth.accessToken}` }
+					: {}
 			);
 
-			if (!response.ok) {
-				throw new Error(
-					`Failed to fetch recipes: ${response.status} ${response.statusText}`
-				);
-			}
-
-			const data = await response.json();
-			console.log("Recipe response:", data);
-
-			if (isMounted.current) {
-				if (Array.isArray(data)) {
-					setRecipes(data);
-					setFilteredRecipes(data);
-				} else {
-					console.error("Expected array of recipes but got:", data);
-					setFetchError("Invalid response format");
-				}
+			if (Array.isArray(responseData)) {
+				setRecipes(responseData);
+				setFilteredRecipes(responseData);
+			} else {
+				setRecipes([]);
+				setFilteredRecipes([]);
 			}
 		} catch (err) {
-			console.error("Error fetching recipes:", err);
-
-			// If direct fetch failed, try with the hook as fallback
-			try {
-				const responseData = await sendRequest(
-					`${process.env.REACT_APP_BACKEND_URL}/recipes`,
-					"GET",
-					null,
-					auth.accessToken
-						? { Authorization: `Bearer ${auth.accessToken}` }
-						: {}
-				);
-
-				if (isMounted.current) {
-					if (Array.isArray(responseData)) {
-						setRecipes(responseData);
-						setFilteredRecipes(responseData);
-					} else {
-						setFetchError("Invalid response format");
-					}
-				}
-			} catch (fallbackErr) {
-				if (isMounted.current) {
-					setFetchError(serverError || "Failed to fetch recipes");
-				}
-			}
+			setRecipes([]);
+			setFilteredRecipes([]);
 		}
-	};
+	}, [auth.isLoggedIn, auth.accessToken, sendRequest, open]); // Dependencies
+
+	useEffect(() => {
+		if (open && auth.isLoggedIn) {
+			fetchRecipes();
+		}
+		if (!open) {
+			resetModalState();
+		}
+	}, [open, auth.isLoggedIn, fetchRecipes, resetModalState]);
+
+	// Filter Recipes
+	useEffect(() => {
+		filterRecipes();
+	}, [searchQuery, recipes]);
 
 	const filterRecipes = () => {
 		if (!searchQuery.trim()) {
 			setFilteredRecipes(recipes);
 			return;
 		}
-
 		const filtered = recipes.filter((recipe) =>
 			recipe.title.toLowerCase().includes(searchQuery.toLowerCase())
 		);
 		setFilteredRecipes(filtered);
+	};
+
+	// Handlers
+	const handleToggleIngredients = async (
+		recipeId: number,
+		event: React.MouseEvent
+	) => {
+		event.preventDefault();
+		event.stopPropagation();
+		// ... (rest of function is unchanged) ...
+		if (expandedRecipeIds.includes(recipeId)) {
+			setExpandedRecipeIds((prev) =>
+				prev.filter((id) => id !== recipeId)
+			);
+			return;
+		}
+
+		setExpandedRecipeIds((prev) => [...prev, recipeId]);
+
+		if (!recipeIngredients[recipeId]) {
+			setLoadingIngredients((prev) => [...prev, recipeId]);
+			try {
+				const response = await sendRequest(
+					`${process.env.REACT_APP_BACKEND_URL}/recipes/${recipeId}/ingredients`,
+					"GET",
+					null,
+					auth.accessToken
+						? { Authorization: `Bearer ${auth.accessToken}` }
+						: {}
+				);
+				setRecipeIngredients((prev) => ({
+					...prev,
+					[recipeId]: response,
+				}));
+			} catch (err) {
+				/* Error handled by hook */
+			} finally {
+				setLoadingIngredients((prev) =>
+					prev.filter((id) => id !== recipeId)
+				);
+			}
+		}
 	};
 
 	const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -170,7 +211,12 @@ function CreateShoppingList() {
 		setSearchQuery("");
 	};
 
-	const handleToggleRecipe = (recipeId: number) => {
+	const handleToggleRecipe = (recipeId: number, event?: React.MouseEvent) => {
+		if (event) {
+			event.preventDefault();
+			event.stopPropagation();
+		}
+		// ... (rest of function is unchanged) ...
 		setSelectedRecipes((prevSelected) => {
 			if (prevSelected.includes(recipeId)) {
 				return prevSelected.filter((id) => id !== recipeId);
@@ -180,175 +226,175 @@ function CreateShoppingList() {
 		});
 	};
 
+	// Adjusted Submit Handler
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
-		setSubmitError(null);
+		setSubmitError(null); // Clear previous local errors
+		// No clearError() call needed here for the hook
 
-		// Validate form
 		if (!title.trim() || selectedRecipes.length === 0) {
 			setShowValidationError(true);
+			setSubmitError(
+				"Please provide a title and select at least one recipe."
+			); // Set specific local error
 			return;
 		}
-
+		setShowValidationError(false);
 		setIsSubmitting(true);
 
 		try {
-			console.log("Creating shopping list with:", {
-				title,
-				recipeIds: selectedRecipes,
-			});
-
-			const apiUrl = `${process.env.REACT_APP_BACKEND_URL}/shopping-lists`;
-			console.log("API endpoint:", apiUrl);
-
 			const responseData = await sendRequest(
-				apiUrl,
+				`${process.env.REACT_APP_BACKEND_URL}/shopping-lists`,
 				"POST",
-				JSON.stringify({
-					title: title,
-					recipeIds: selectedRecipes,
-				}),
+				JSON.stringify({ title: title, recipeIds: selectedRecipes }),
 				{
 					"Content-Type": "application/json",
 					Authorization: `Bearer ${auth.accessToken}`,
 				}
 			);
 
-			console.log("Shopping list created:", responseData);
-
-			// Navigate to the new shopping list
 			if (responseData && responseData.id) {
-				navigate(`/shopping/${responseData.id}`);
+				onSuccess?.(responseData.id);
+				handleClose(); // Close modal on success
 			} else {
+				console.error("Invalid response format:", responseData);
 				setSubmitError(
-					"Created shopping list but received invalid response format"
+					"Created list but received invalid response format."
 				);
 			}
-		} catch (err) {
-			console.error("Error creating shopping list:", err);
-			setSubmitError(serverError || "Failed to create shopping list");
+		} catch (err: any) {
+			// serverError is set by the hook, setSubmitError can show hook error or fallback
+			setSubmitError(
+				serverError || err.message || "Failed to create shopping list"
+			);
+		} finally {
 			setIsSubmitting(false);
 		}
 	};
 
-	const handleGoBack = () => {
-		navigate("/shopping");
-	};
-
-	// If not logged in, don't render the component
-	if (!auth.isLoggedIn) {
-		return null; // The useEffect will redirect to login
-	}
+	// Render Logic
+	if (!open) return null;
 
 	return (
-		<Box sx={{ padding: 3, minHeight: "calc(100vh - 70px)" }}>
-			<Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
-				<IconButton onClick={handleGoBack} sx={{ mr: 1 }}>
-					<ArrowBackIcon />
-				</IconButton>
-				<Typography
-					variant="h4"
-					component="h1"
-					sx={{ color: "#EB5A3C", fontWeight: "bold" }}
+		<Dialog
+			open={open}
+			onClose={handleClose}
+			maxWidth="md"
+			fullWidth
+			aria-labelledby="create-shopping-list-dialog-title"
+			PaperProps={{
+				component: "form",
+				onSubmit: handleSubmit,
+				id: "create-shopping-list-form",
+			}}
+		>
+			<DialogTitle id="create-shopping-list-dialog-title">
+				Create Shopping List
+				<IconButton
+					aria-label="close"
+					onClick={handleClose}
+					sx={{
+						position: "absolute",
+						right: 8,
+						top: 8,
+						color: (theme) => theme.palette.grey[500],
+					}}
 				>
-					Create Shopping List
-				</Typography>
-			</Box>
+					<CloseIcon />
+				</IconButton>
+			</DialogTitle>
 
-			{submitError && (
-				<Alert severity="error" sx={{ mb: 3 }}>
-					{submitError}
-				</Alert>
-			)}
-
-			<Box component="form" onSubmit={handleSubmit}>
-				<Paper elevation={2} sx={{ p: 3, mb: 4 }}>
-					<Typography variant="h6" gutterBottom>
-						Shopping List Details
-					</Typography>
-					<TextField
-						fullWidth
-						label="Shopping List Title"
-						value={title}
-						onChange={(e) => setTitle(e.target.value)}
-						required
-						error={showValidationError && !title.trim()}
-						helperText={
-							showValidationError && !title.trim()
-								? "Title is required"
-								: ""
+			<DialogContent dividers>
+				{/* Display hook errors OR local submission errors */}
+				{(serverError || submitError) && (
+					<Alert severity="error" sx={{ mb: 2 }}>
+						{
+							submitError ||
+								serverError /* Show local error first if it exists */
 						}
-						sx={{ mb: 3 }}
-					/>
+					</Alert>
+				)}
 
-					<Typography variant="subtitle1" gutterBottom>
-						Select Recipes to Include
-					</Typography>
-					{showValidationError && selectedRecipes.length === 0 && (
-						<Alert severity="error" sx={{ mb: 2 }}>
-							Please select at least one recipe
-						</Alert>
-					)}
+				<TextField
+					fullWidth
+					label="Shopping List Title"
+					value={title}
+					onChange={(e) => setTitle(e.target.value)}
+					required
+					error={showValidationError && !title.trim()}
+					helperText={
+						showValidationError && !title.trim()
+							? "Title is required"
+							: ""
+					}
+					sx={{ mb: 3 }}
+					autoFocus
+				/>
 
-					<TextField
-						fullWidth
-						label="Search Recipes"
-						value={searchQuery}
-						onChange={handleSearchChange}
-						sx={{ mb: 2 }}
-						InputProps={{
-							startAdornment: (
-								<InputAdornment position="start">
-									<SearchIcon />
-								</InputAdornment>
-							),
-							endAdornment: searchQuery && (
-								<InputAdornment position="end">
-									<IconButton
-										size="small"
-										onClick={handleClearSearch}
-									>
-										<ClearIcon />
-									</IconButton>
-								</InputAdornment>
-							),
-						}}
-					/>
+				<Typography variant="subtitle1" gutterBottom>
+					Select Recipes to Include
+				</Typography>
+				{showValidationError && selectedRecipes.length === 0 && (
+					<Alert severity="error" sx={{ mb: 2 }}>
+						Please select at least one recipe
+					</Alert>
+				)}
 
-					{isLoading ? (
-						<Box
-							sx={{
-								display: "flex",
-								justifyContent: "center",
-								py: 4,
-							}}
-						>
-							<CircularProgress sx={{ color: "#EB5A3C" }} />
-						</Box>
-					) : fetchError ? (
-						<Alert severity="error" sx={{ mb: 2 }}>
-							{fetchError}
-						</Alert>
-					) : recipes.length === 0 ? (
-						<Alert severity="info" sx={{ mb: 2 }}>
-							No recipes available. Please create some recipes
-							first.
-						</Alert>
-					) : filteredRecipes.length === 0 ? (
-						<Alert severity="info">
-							No recipes found matching your search. Try modifying
-							your search.
-						</Alert>
-					) : (
-						<Grid container spacing={2}>
-							{filteredRecipes.map((recipe) => (
-								<Grid
-									item
-									xs={12}
-									sm={6}
-									md={4}
-									key={recipe.recipeId}
+				<TextField
+					fullWidth
+					label="Search Recipes"
+					value={searchQuery}
+					onChange={handleSearchChange}
+					sx={{ mb: 2 }}
+					InputProps={{
+						startAdornment: (
+							<InputAdornment position="start">
+								<SearchIcon />
+							</InputAdornment>
+						),
+						endAdornment: searchQuery && (
+							<InputAdornment position="end">
+								<IconButton
+									size="small"
+									type="button"
+									onClick={handleClearSearch}
 								>
+									<ClearIcon />
+								</IconButton>
+							</InputAdornment>
+						),
+					}}
+				/>
+
+				{/* Recipe Loading/Display Logic */}
+				{isLoading && !isSubmitting ? ( // Show loading only if not submitting
+					<Box
+						sx={{
+							display: "flex",
+							justifyContent: "center",
+							py: 4,
+						}}
+					>
+						<CircularProgress sx={{ color: "#EB5A3C" }} />
+					</Box>
+				) : recipes.length === 0 && !serverError ? ( // Check for no recipes only if no error loading them
+					<Alert severity="info" sx={{ mb: 2 }}>
+						No recipes available to add.
+					</Alert>
+				) : filteredRecipes.length === 0 && searchQuery ? (
+					<Alert severity="info">
+						No recipes found matching "{searchQuery}".
+					</Alert>
+				) : (
+					// Grid for recipes (Check if serverError occurred during fetch)
+					!serverError && (
+						<Grid
+							container
+							spacing={2}
+							sx={{ maxHeight: "40vh", overflowY: "auto", pr: 1 }}
+						>
+							{filteredRecipes.map((recipe) => (
+								<Grid item xs={12} sm={6} key={recipe.recipeId}>
 									<Card
 										sx={{
 											border: selectedRecipes.includes(
@@ -365,64 +411,220 @@ function CreateShoppingList() {
 											height: "100%",
 											display: "flex",
 											flexDirection: "column",
+											transition:
+												"border-color 0.2s ease-in-out",
 										}}
+										variant="outlined"
 									>
-										<CardContent sx={{ flexGrow: 1 }}>
-											<Typography
-												variant="h6"
-												component="h2"
-												gutterBottom
-											>
-												{recipe.title}
-											</Typography>
+										<CardContent
+											sx={{ flexGrow: 1, pb: 1 }}
+										>
+											{/* Recipe Title and Details */}
 											<Box
-												sx={{
-													display: "flex",
-													alignItems: "center",
-													mb: 1,
-												}}
+												onClick={(e) =>
+													handleToggleRecipe(
+														recipe.recipeId,
+														e
+													)
+												}
+												sx={{ cursor: "pointer" }}
 											>
-												<AccessTimeIcon
-													fontSize="small"
-													sx={{
-														mr: 1,
-														color: "#666",
-													}}
-												/>
 												<Typography
-													variant="body2"
-													color="text.secondary"
+													variant="h6"
+													component="h2"
+													gutterBottom
 												>
-													{recipe.preparationTime +
-														recipe.cookingTime}{" "}
-													min
+													{recipe.title}
 												</Typography>
+												<Box
+													sx={{
+														display: "flex",
+														alignItems: "center",
+														mb: 1,
+													}}
+												>
+													<AccessTimeIcon
+														fontSize="small"
+														sx={{
+															mr: 1,
+															color: "#666",
+														}}
+													/>
+													<Typography
+														variant="body2"
+														color="text.secondary"
+													>
+														{recipe.preparationTime +
+															recipe.cookingTime}{" "}
+														min
+													</Typography>
+												</Box>
+												<Box
+													sx={{
+														display: "flex",
+														alignItems: "center",
+														mb: 1,
+													}}
+												>
+													<RestaurantMenuIcon
+														fontSize="small"
+														sx={{
+															mr: 1,
+															color: "#666",
+														}}
+													/>
+													<Typography
+														variant="body2"
+														color="text.secondary"
+													>
+														{recipe.servings}{" "}
+														servings
+													</Typography>
+												</Box>
 											</Box>
-											<Box
-												sx={{
-													display: "flex",
-													alignItems: "center",
-													mb: 1,
-												}}
-											>
-												<RestaurantMenuIcon
-													fontSize="small"
+											{/* Ingredient Toggle Button */}
+											<Box sx={{ mt: 1 }}>
+												<Button
+													size="small"
+													type="button"
+													startIcon={
+														expandedRecipeIds.includes(
+															recipe.recipeId
+														) ? (
+															<ExpandLessIcon />
+														) : (
+															<ExpandMoreIcon />
+														)
+													}
+													onClick={(e) =>
+														handleToggleIngredients(
+															recipe.recipeId,
+															e
+														)
+													}
 													sx={{
-														mr: 1,
 														color: "#666",
+														justifyContent:
+															"flex-start",
 													}}
-												/>
-												<Typography
-													variant="body2"
-													color="text.secondary"
+													fullWidth
+													variant="text"
 												>
-													{recipe.servings} servings
-												</Typography>
+													{expandedRecipeIds.includes(
+														recipe.recipeId
+													)
+														? "Hide Ingredients"
+														: "Show Ingredients"}
+												</Button>
 											</Box>
 										</CardContent>
-										<CardActions>
+										{/* Expandable Ingredients Section */}
+										<Collapse
+											in={expandedRecipeIds.includes(
+												recipe.recipeId
+											)}
+											timeout="auto"
+											unmountOnExit
+										>
+											<Box sx={{ px: 2, pb: 2 }}>
+												<Divider sx={{ mb: 1 }} />
+												<Box
+													sx={{
+														display: "flex",
+														alignItems: "center",
+														mb: 1,
+													}}
+												>
+													<KitchenIcon
+														fontSize="small"
+														sx={{
+															mr: 1,
+															color: "#666",
+														}}
+													/>
+													<Typography variant="subtitle2">
+														Ingredients
+													</Typography>
+												</Box>
+												{loadingIngredients.includes(
+													recipe.recipeId
+												) ? (
+													<Box
+														sx={{
+															display: "flex",
+															justifyContent:
+																"center",
+															py: 1,
+														}}
+													>
+														<CircularProgress
+															size={20}
+															sx={{
+																color: "#EB5A3C",
+															}}
+														/>
+													</Box>
+												) : recipeIngredients[
+														recipe.recipeId
+												  ]?.length ? (
+													<List
+														dense
+														disablePadding
+														sx={{
+															maxHeight: 150,
+															overflowY: "auto",
+														}}
+													>
+														{recipeIngredients[
+															recipe.recipeId
+														].map(
+															(
+																ingredient,
+																idx
+															) => (
+																<ListItem
+																	key={idx}
+																	disablePadding
+																	sx={{
+																		py: 0.2,
+																	}}
+																>
+																	<ListItemText
+																		primary={
+																			ingredient.name
+																		}
+																		secondary={
+																			ingredient.quantity
+																		}
+																		primaryTypographyProps={{
+																			variant:
+																				"body2",
+																		}}
+																		secondaryTypographyProps={{
+																			variant:
+																				"caption",
+																		}}
+																	/>
+																</ListItem>
+															)
+														)}
+													</List>
+												) : (
+													<Typography
+														variant="body2"
+														color="text.secondary"
+														sx={{ pl: 1 }}
+													>
+														No ingredients listed.
+													</Typography>
+												)}
+											</Box>
+										</Collapse>
+										{/* Select Button */}
+										<CardActions sx={{ pt: 0 }}>
 											<Button
 												fullWidth
+												type="button"
 												variant={
 													selectedRecipes.includes(
 														recipe.recipeId
@@ -430,9 +632,10 @@ function CreateShoppingList() {
 														? "contained"
 														: "outlined"
 												}
-												onClick={() =>
+												onClick={(e) =>
 													handleToggleRecipe(
-														recipe.recipeId
+														recipe.recipeId,
+														e
 													)
 												}
 												sx={{
@@ -454,7 +657,8 @@ function CreateShoppingList() {
 																recipe.recipeId
 															)
 																? "#d23c22"
-																: "rgba(235, 90, 60, 0.1)",
+																: "rgba(235, 90, 60, 0.08)",
+														borderColor: "#d23c22",
 													},
 												}}
 											>
@@ -469,41 +673,39 @@ function CreateShoppingList() {
 								</Grid>
 							))}
 						</Grid>
-					)}
+					)
+				)}
+			</DialogContent>
 
-					<Box
-						sx={{
-							mt: 4,
-							display: "flex",
-							justifyContent: "space-between",
-						}}
-					>
-						<Button variant="outlined" onClick={handleGoBack}>
-							Cancel
-						</Button>
-						<Button
-							type="submit"
-							variant="contained"
-							startIcon={<ShoppingCartIcon />}
-							disabled={
-								isSubmitting || selectedRecipes.length === 0
-							}
-							sx={{
-								backgroundColor: "#EB5A3C",
-								"&:hover": { backgroundColor: "#d23c22" },
-							}}
-						>
-							{isSubmitting ? (
-								<CircularProgress size={24} color="inherit" />
-							) : (
-								"Create Shopping List"
-							)}
-						</Button>
-					</Box>
-				</Paper>
-			</Box>
-		</Box>
+			<DialogActions sx={{ p: 2 }}>
+				<Button variant="outlined" onClick={handleClose}>
+					Cancel
+				</Button>
+				<Button
+					type="submit"
+					variant="contained"
+					startIcon={<ShoppingCartIcon />}
+					disabled={
+						isSubmitting ||
+						isLoading ||
+						!title.trim() ||
+						selectedRecipes.length === 0
+					}
+					sx={{
+						backgroundColor: "#EB5A3C",
+						"&:hover": { backgroundColor: "#d23c22" },
+						"&:disabled": { backgroundColor: "grey.300" },
+					}}
+				>
+					{isSubmitting ? (
+						<CircularProgress size={24} color="inherit" />
+					) : (
+						"Create Shopping List"
+					)}
+				</Button>
+			</DialogActions>
+		</Dialog>
 	);
 }
 
-export default CreateShoppingList;
+export default CreateShoppingListModal; // Exporting as Modal, but filename might be CreateShoppingList.tsx

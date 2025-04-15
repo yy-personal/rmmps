@@ -28,10 +28,6 @@ root.render(
 					/>
 					<Route path="/shopping" element={<ShoppingLists />} />
 					<Route
-						path="/shopping/create"
-						element={<CreateShoppingList />}
-					/>
-					<Route
 						path="/shopping/:id"
 						element={<ShoppingListDetail />}
 					/>
