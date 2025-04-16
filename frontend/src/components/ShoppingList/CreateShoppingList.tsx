@@ -86,6 +86,10 @@ function CreateShoppingListModal({
 		[key: number]: RecipeIngredient[];
 	}>({});
 	const [loadingIngredients, setLoadingIngredients] = useState<number[]>([]);
+	
+	// For tracking scroll position 
+	const [scrollPosition, setScrollPosition] = useState(0);
+	const gridRef = React.useRef<HTMLDivElement>(null);
 
 	// State Reset Logic
 	const resetModalState = useCallback(() => {
@@ -161,6 +165,18 @@ function CreateShoppingListModal({
 		setFilteredRecipes(filtered);
 	};
 
+	// Restore scroll position after any update that might affect it
+	const restoreScrollPosition = () => {
+		if (gridRef.current && scrollPosition > 0) {
+			// Use setTimeout to ensure the restore happens after DOM updates
+			setTimeout(() => {
+				if (gridRef.current) {
+					gridRef.current.scrollTop = scrollPosition;
+				}
+			}, 10);  
+		}
+	};
+
 	// Handlers
 	const handleToggleIngredients = async (
 		recipeId: number,
@@ -168,16 +184,27 @@ function CreateShoppingListModal({
 	) => {
 		event.preventDefault();
 		event.stopPropagation();
-		// ... (rest of function is unchanged) ...
+
+		// Save current scroll position before any state change
+		if (gridRef.current) {
+			setScrollPosition(gridRef.current.scrollTop);
+		}
+
+		// Toggle expanded state without scrolling
 		if (expandedRecipeIds.includes(recipeId)) {
 			setExpandedRecipeIds((prev) =>
 				prev.filter((id) => id !== recipeId)
 			);
+			
+			// Restore after state update
+			setTimeout(restoreScrollPosition, 10);
 			return;
 		}
 
+		// Add this recipe to expanded list
 		setExpandedRecipeIds((prev) => [...prev, recipeId]);
 
+		// Only fetch ingredients if not already loaded
 		if (!recipeIngredients[recipeId]) {
 			setLoadingIngredients((prev) => [...prev, recipeId]);
 			try {
@@ -189,19 +216,34 @@ function CreateShoppingListModal({
 						? { Authorization: `Bearer ${auth.accessToken}` }
 						: {}
 				);
+				
+				// Update recipe ingredients
 				setRecipeIngredients((prev) => ({
 					...prev,
 					[recipeId]: response,
 				}));
+
+				// Restore scroll position after data loaded
+				setTimeout(restoreScrollPosition, 10);
 			} catch (err) {
 				/* Error handled by hook */
+				// Still restore position on error
+				setTimeout(restoreScrollPosition, 10);
 			} finally {
 				setLoadingIngredients((prev) =>
 					prev.filter((id) => id !== recipeId)
 				);
 			}
+		} else {
+			// If ingredients already loaded, just restore scroll
+			setTimeout(restoreScrollPosition, 10);
 		}
 	};
+
+	// Call restoreScrollPosition after Recipe ingredients are expanded/collapsed
+	useEffect(() => {
+		restoreScrollPosition();
+	}, [expandedRecipeIds, recipeIngredients]);
 
 	const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		setSearchQuery(e.target.value);
@@ -392,6 +434,7 @@ function CreateShoppingListModal({
 							container
 							spacing={2}
 							sx={{ maxHeight: "40vh", overflowY: "auto", pr: 1 }}
+							ref={gridRef}
 						>
 							{filteredRecipes.map((recipe) => (
 								<Grid item xs={12} sm={6} key={recipe.recipeId}>

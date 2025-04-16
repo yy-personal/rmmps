@@ -12,7 +12,7 @@ import Checkbox from "@mui/material/Checkbox";
 import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
 import ListItemText from "@mui/material/ListItemText";
-// ListItemIcon removed to fix duplicate checkbox issue
+// ListItemIcon import removed to fix duplicate checkbox issue
 import Divider from "@mui/material/Divider";
 import Alert from "@mui/material/Alert";
 import CircularProgress from "@mui/material/CircularProgress";
@@ -38,6 +38,7 @@ import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 const Toast = forwardRef<HTMLDivElement, AlertProps>((props, ref) => {
 	return <MuiAlert elevation={6} ref={ref} variant="filled" {...props} />;
 });
+
 
 interface ShoppingListItem {
 	ingredientId: number;
@@ -69,33 +70,22 @@ function ShoppingListDetail() {
 	const { isLoading, sendRequest, serverError } = useHttpClient();
 	const [shoppingList, setShoppingList] = useState<ShoppingList | null>(null);
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-	const [itemsGroupedByRecipe, setItemsGroupedByRecipe] =
-		useState<GroupedItems>({});
-	const [loadingItemIds, setLoadingItemIds] = useState<Set<number>>(
-		new Set()
-	);
-
+	const [itemsGroupedByRecipe, setItemsGroupedByRecipe] = useState<GroupedItems>({});
+	const [loadingItemIds, setLoadingItemIds] = useState<Set<number>>(new Set());
+	
 	// Toast notification state
 	const [toastOpen, setToastOpen] = useState(false);
 	const [toastMessage, setToastMessage] = useState("");
-	const [toastSeverity, setToastSeverity] = useState<
-		"success" | "info" | "warning" | "error"
-	>("success");
-
+	const [toastSeverity, setToastSeverity] = useState<"success" | "info" | "warning" | "error">("success");
+	
 	// Toast notification handlers
-	const showToast = (
-		message: string,
-		severity: "success" | "info" | "warning" | "error" = "success"
-	) => {
+	const showToast = (message: string, severity: "success" | "info" | "warning" | "error" = "success") => {
 		setToastMessage(message);
 		setToastSeverity(severity);
 		setToastOpen(true);
 	};
-
-	const handleCloseToast = (
-		event?: React.SyntheticEvent | Event,
-		reason?: string
-	) => {
+	
+	const handleCloseToast = (event?: React.SyntheticEvent | Event, reason?: string) => {
 		if (reason === "clickaway") return;
 		setToastOpen(false);
 	};
@@ -192,15 +182,9 @@ function ShoppingListDetail() {
 		const attemptUpdate = async (): Promise<boolean> => {
 			try {
 				// Log important details for debugging
-				console.log(
-					`Updating item ${
-						item.ingredientId
-					} to purchased=${!item.purchased}`
-				);
-				console.log(
-					`JWT Token: ${auth.accessToken.substring(0, 10)}...`
-				);
-
+				console.log(`Updating item ${item.ingredientId} to purchased=${!item.purchased}`);
+				console.log(`JWT Token: ${auth.accessToken.substring(0, 10)}...`);
+				
 				await sendRequest(
 					`${process.env.REACT_APP_BACKEND_URL}/shopping-lists/${
 						shoppingList.id
@@ -212,12 +196,10 @@ function ShoppingListDetail() {
 					}
 				);
 				console.log("Item status update successful");
-
+				
 				// Show success toast
 				showToast(
-					`${item.ingredientName} marked as ${
-						!item.purchased ? "purchased" : "not purchased"
-					}.`,
+					`${item.ingredientName} marked as ${!item.purchased ? "purchased" : "not purchased"}.`,
 					"success"
 				);
 				return true;
@@ -226,17 +208,13 @@ function ShoppingListDetail() {
 				console.error(`Failed to update item status: ${err.message}`);
 				if (retryCount < maxRetries) {
 					retryCount++;
-					console.log(
-						`Retrying update (${retryCount}/${maxRetries})...`
-					);
+					console.log(`Retrying update (${retryCount}/${maxRetries})...`);
 					// Show retry toast
 					showToast(
 						`Connection issue. Retrying... (${retryCount}/${maxRetries})`,
 						"warning"
 					);
-					await new Promise((resolve) =>
-						setTimeout(resolve, 1000 * retryCount)
-					);
+					await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
 					return attemptUpdate();
 				}
 				return false;
@@ -472,7 +450,7 @@ function ShoppingListDetail() {
 											<Box key={item.ingredientId}>
 												<ListItem
 													dense
-													sx={{ pl: 3 }} // Corrected 'sc' to 'sx'
+													sx={{ pl: 3 }} // Added padding to the left for better spacing
 													secondaryAction={
 														loadingItemIds.has(
 															item.ingredientId
@@ -498,6 +476,7 @@ function ShoppingListDetail() {
 														)
 													}
 												>
+													{/* ListItemIcon removed to fix duplicate checkbox issue */}
 													<ListItemText
 														id={`item-${item.ingredientId}`}
 														primary={
@@ -559,20 +538,16 @@ function ShoppingListDetail() {
 			</Dialog>
 
 			{/* Toast Notification */}
-			<Snackbar
-				open={toastOpen}
-				autoHideDuration={4000}
+			<Snackbar 
+				open={toastOpen} 
+				autoHideDuration={4000} 
 				onClose={handleCloseToast}
-				anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+				anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
 			>
-				<Toast
-					onClose={handleCloseToast}
-					severity={toastSeverity}
-					icon={
-						toastSeverity === "success" ? (
-							<CheckCircleOutlineIcon />
-						) : undefined
-					}
+				<Toast 
+					onClose={handleCloseToast} 
+					severity={toastSeverity} 
+					icon={toastSeverity === 'success' ? <CheckCircleOutlineIcon /> : undefined}
 				>
 					{toastMessage}
 				</Toast>
