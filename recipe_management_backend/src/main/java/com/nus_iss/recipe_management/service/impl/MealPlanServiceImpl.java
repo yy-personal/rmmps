@@ -76,7 +76,14 @@ public class MealPlanServiceImpl implements MealPlanService {
             throw new AccessDeniedException("You do not have permission to modify this meal plan.");
         }
 
-        return updatedMealPlan;
+        mealPlan.setTitle(updatedMealPlan.getTitle());
+        mealPlan.setStartDate(updatedMealPlan.getStartDate());
+        mealPlan.setEndDate(updatedMealPlan.getEndDate());
+        mealPlan.setFrequency(updatedMealPlan.getFrequency());
+        mealPlan.setMealsPerDay(updatedMealPlan.getMealsPerDay());
+
+
+        return mealPlanRepository.save(mealPlan);
     }
 
     @Override
