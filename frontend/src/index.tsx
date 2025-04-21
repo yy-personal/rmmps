@@ -22,7 +22,7 @@ root.render(
 					<Route path="/" element={<RecipeList />} />
 					<Route path="/recipes" element={<RecipeList />} />
 					<Route path="/contribute" element={<RecipeForm />} />
-          <Route path="/mealPlans" element={<MealPlanList />} />
+          			<Route path="/mealPlans" element={<MealPlanList />} />
 					<Route path="/login" element={<Login isLogin />} />
 					<Route
 						path="/register"

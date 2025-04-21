@@ -24,6 +24,7 @@ import PersonIcon from "@mui/icons-material/Person";
 import DateRangeIcon from "@mui/icons-material/DateRange";
 import SignalCellularAltIcon from "@mui/icons-material/SignalCellularAlt";
 import Chip from "@mui/material/Chip";
+import { toast } from 'react-toastify';
 
 
 interface User {
@@ -148,8 +149,26 @@ function MealPlanDetail({ mealPlanId, open, onClose, onDelete }: MealPlanDetailP
 			responseData.endDate = new Date(responseData.endDate);
 			setMealPlan(responseData);
 			setIsEditing(false);
+			toast.success("MealPlan updated successfully", {
+				position: "top-right",
+				autoClose: 3000,
+				hideProgressBar: false,
+				closeOnClick: true,
+				pauseOnHover: true,
+				draggable: true,
+				progress: undefined,
+			});
 		} catch (err) {
 			console.log(err.message || serverError);
+			toast.error("Failed to update MealPlan", {
+				position: "top-right",
+				autoClose: 3000,
+				hideProgressBar: false,
+				closeOnClick: true,
+				pauseOnHover: true,
+				draggable: true,
+				progress: undefined,
+			});
 		} finally {
 			setIsSaving(false);
 		}
@@ -172,9 +191,27 @@ function MealPlanDetail({ mealPlanId, open, onClose, onDelete }: MealPlanDetailP
 			setMealPlan(null);
 			onClose(); 
 			onDelete(mealPlanId);
+			toast.success("MealPlan deleted successfully", {
+				position: "top-right",
+				autoClose: 3000,
+				hideProgressBar: false,
+				closeOnClick: true,
+				pauseOnHover: true,
+				draggable: true,
+				progress: undefined,
+			});
 
 		} catch (err) {
 			console.log(err.message || serverError);
+			toast.error("Failed to delete MealPlan", {
+				position: "top-right",
+				autoClose: 3000,
+				hideProgressBar: false,
+				closeOnClick: true,
+				pauseOnHover: true,
+				draggable: true,
+				progress: undefined,
+			});
 		}
 	};
 
