@@ -142,7 +142,17 @@ function Header() {
 
 	const navigateTo = (path: string) => {
 		handleCloseNavMenu();
-		navigate(path);
+
+		if (path === "shopping") {
+			if (sessionStorage.getItem("returnToShoppingList") === "true") {
+				sessionStorage.removeItem("returnToShoppingList");
+				window.location.href = "/shopping";
+			} else {
+				navigate("/shopping");
+			}
+		} else {
+			navigate(`/${path}`);
+		}
 	};
 
 	return (

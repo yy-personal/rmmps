@@ -6,32 +6,35 @@ import App from "./App";
 import RecipeList from "components/RecipeList/RecipeList";
 import RecipeForm from "components/RecipeForm/RecipeForm";
 import Login from "components/Login/Login";
-import MealPlanList from "components/MealPlanList/MealPlanList";
+import ShoppingLists from "components/ShoppingList/ShoppingLists";
+import ShoppingListDetail from "components/ShoppingList/ShoppingListDetail";
+import CreateShoppingList from "components/ShoppingList/CreateShoppingList";import MealPlanList from "components/MealPlanList/MealPlanList";
 
 
 const root = ReactDOM.createRoot(
-  document.getElementById("root") as HTMLElement
+	document.getElementById("root") as HTMLElement
 );
 root.render(
-  <React.StrictMode>
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<App />}>
-          <Route path="/" element={<RecipeList />} />
-          <Route path="/recipes" element={<RecipeList />} />
-          <Route path="/contribute" element={<RecipeForm />} />
+	<React.StrictMode>
+		<BrowserRouter>
+			<Routes>
+				<Route path="/" element={<App />}>
+					<Route path="/" element={<RecipeList />} />
+					<Route path="/recipes" element={<RecipeList />} />
+					<Route path="/contribute" element={<RecipeForm />} />
           <Route path="/mealPlans" element={<MealPlanList />} />
-          <Route path="/login" element={<Login isLogin />} />
-          <Route path="/register" element={<Login isLogin={false} />} />
-          {/* <Route path="*" element={<PageNotFound />} /> */}
-        </Route>
-      </Routes>
-    </BrowserRouter>
-  </React.StrictMode>
+					<Route path="/login" element={<Login isLogin />} />
+					<Route
+						path="/register"
+						element={<Login isLogin={false} />}
+					/>
+					<Route path="/shopping" element={<ShoppingLists />} />
+					<Route
+						path="/shopping/:id"
+						element={<ShoppingListDetail />}
+					/>
+				</Route>
+			</Routes>
+		</BrowserRouter>
+	</React.StrictMode>
 );
-
-// If you want to start measuring performance in your app, pass a function
-// to log results (for example: reportWebVitals(console.log))
-// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
-
-// reportWebVitals();
