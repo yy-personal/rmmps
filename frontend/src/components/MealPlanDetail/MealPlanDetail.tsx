@@ -158,6 +158,10 @@ function MealPlanDetail({ mealPlanId, open, onClose, onDelete }: MealPlanDetailP
 				draggable: true,
 				progress: undefined,
 			});
+			// close modal after saving
+			onClose();
+			// reload the page to reflect changes
+			window.location.reload();
 		} catch (err) {
 			console.log(err.message || serverError);
 			toast.error("Failed to update MealPlan", {
