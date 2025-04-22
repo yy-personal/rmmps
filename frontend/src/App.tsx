@@ -6,6 +6,7 @@ import { Outlet, useNavigate } from "react-router-dom";
 import { AuthContext } from "./contexts/auth-context";
 import { useCallback, useEffect, useState } from "react";
 import { useHttpClient } from "hooks/http-hook";
+import { ToastContainer } from "react-toastify";
 
 const userDataIdentifier = "rmmps-userData";
 const defaultTokenExpiry = 1000 * 890; // 15 minutes - 10 seconds buffer
@@ -179,6 +180,7 @@ function App() {
     >
       <Box className="App">
         <Header />
+        <ToastContainer />
         <Box
           sx={{ backgroundColor: "#FBFBFB", minHeight: "calc(100vh - 70px)" }}
         >

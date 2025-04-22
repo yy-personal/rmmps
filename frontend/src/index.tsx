@@ -8,7 +8,8 @@ import RecipeForm from "components/RecipeForm/RecipeForm";
 import Login from "components/Login/Login";
 import ShoppingLists from "components/ShoppingList/ShoppingLists";
 import ShoppingListDetail from "components/ShoppingList/ShoppingListDetail";
-import CreateShoppingList from "components/ShoppingList/CreateShoppingList";
+import CreateShoppingList from "components/ShoppingList/CreateShoppingList";import MealPlanList from "components/MealPlanList/MealPlanList";
+
 
 const root = ReactDOM.createRoot(
 	document.getElementById("root") as HTMLElement
@@ -21,6 +22,7 @@ root.render(
 					<Route path="/" element={<RecipeList />} />
 					<Route path="/recipes" element={<RecipeList />} />
 					<Route path="/contribute" element={<RecipeForm />} />
+          			<Route path="/mealPlans" element={<MealPlanList />} />
 					<Route path="/login" element={<Login isLogin />} />
 					<Route
 						path="/register"
