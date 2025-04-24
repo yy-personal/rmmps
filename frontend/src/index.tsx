@@ -9,6 +9,7 @@ import Login from "components/Login/Login";
 import ShoppingLists from "components/ShoppingList/ShoppingLists";
 import ShoppingListDetail from "components/ShoppingList/ShoppingListDetail";
 import CreateShoppingList from "components/ShoppingList/CreateShoppingList";import MealPlanList from "components/MealPlanList/MealPlanList";
+import MealPlanForm from "components/MealPlanForm/MealPlanForm";
 
 
 const root = ReactDOM.createRoot(
@@ -23,6 +24,7 @@ root.render(
 					<Route path="/recipes" element={<RecipeList />} />
 					<Route path="/contribute" element={<RecipeForm />} />
           			<Route path="/mealPlans" element={<MealPlanList />} />
+					<Route path="/mealPlanForm" element={<MealPlanForm/>} />
 					<Route path="/login" element={<Login isLogin />} />
 					<Route
 						path="/register"
