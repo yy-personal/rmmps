@@ -37,12 +37,8 @@ public class MealPlanServiceImpl implements MealPlanService {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = ((UserDetails) authentication.getPrincipal()).getUsername();
         User user = userService.findByEmail(username).orElseThrow(() -> new AuthenticationCredentialsNotFoundException("Value not present"));;
-        Integer userId = user.getUserId();
 
-        // Check that the logged-in user is authorised to create meal plans under the submitted user id
-        if (!mealPlan.getUser().getUserId().equals(userId)) {
-            throw new AccessDeniedException("You do not have permission to create this meal plan using this user id.");
-        }
+        mealPlan.setUser(user);
 
         return mealPlanRepository.save(mealPlan);
     }
