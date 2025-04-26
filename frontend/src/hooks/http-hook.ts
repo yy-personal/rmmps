@@ -1,5 +1,8 @@
 import { useCallback, useState, useRef, useEffect } from "react";
 
+// Set to true only during development
+const DEBUG_MODE = process.env.NODE_ENV === 'development' && false; // Set to true to enable debugging
+
 export const useHttpClient = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [serverError, setServerError] = useState("");
@@ -20,9 +23,11 @@ export const useHttpClient = () => {
       activeHttpRequests.current.push(httpAbortCtrl);
 
       try {
-        console.log(`Sending ${method} request to ${url}`);
-        console.log("Request headers:", headers);
-        if (body) console.log("Request body:", body);
+        if (DEBUG_MODE) {
+          console.log(`Sending ${method} request to ${url}`);
+          console.log("Request headers:", headers);
+          if (body) console.log("Request body:", body);
+        }
 
         const response = await fetch(url, {
           method,
@@ -31,45 +36,30 @@ export const useHttpClient = () => {
           signal: httpAbortCtrl.signal,
         });
 
-        // Remove current abort controller from active list
         activeHttpRequests.current = activeHttpRequests.current.filter(
           (reqCtrl) => reqCtrl !== httpAbortCtrl
         );
 
-        console.log(`Response status: ${response.status}`);
         setStatusCode(response.status);
 
-        // For debugging, log all headers
-        console.log("Response headers:");
-        response.headers.forEach((value, key) => {
-          console.log(`${key}: ${value}`);
-        });
+        const contentType = response.headers.get("content-type");
 
         let responseData;
+        const text = await response.text();
 
-        // Check content-type header
-        const contentType = response.headers.get("content-type");
-        console.log(`Content-Type: ${contentType}`);
-
-        // Try to parse response appropriately
         if (contentType && contentType.includes("application/json")) {
           try {
-            const text = await response.text();
-            console.log("Response text:", text);
+            if (DEBUG_MODE) console.log("Response text:", text);
             responseData = text ? JSON.parse(text) : null;
           } catch (parseErr) {
-            console.error("Failed to parse JSON response:", parseErr);
+            if (DEBUG_MODE) console.error("Failed to parse JSON response:", parseErr);
             throw new Error("Invalid JSON response from server");
           }
         } else {
-          // Handle non-JSON responses
-          const text = await response.text();
-          console.log("Non-JSON response:", text);
+          if (DEBUG_MODE) console.log("Non-JSON response:", text);
           try {
-            // Try to parse as JSON anyway in case Content-Type is wrong
             responseData = text ? JSON.parse(text) : null;
           } catch (err) {
-            // If it's not JSON, just use the text
             responseData = text || null;
           }
         }
@@ -77,20 +67,18 @@ export const useHttpClient = () => {
         if (!response.ok) {
           const errorMessage = responseData?.message ||
             `Request failed with status ${response.status}`;
-          console.error(`Error response:`, errorMessage);
+          if (DEBUG_MODE) console.error(`Error response:`, errorMessage);
           throw new Error(errorMessage);
         }
 
-        console.log("Parsed response data:", responseData);
+        if (DEBUG_MODE) console.log("Response data parsed successfully");
         setIsLoading(false);
         return responseData;
       } catch (err) {
-        // Check if the error is due to an aborted request
         if (err.name === 'AbortError') {
-          console.log('Request was aborted');
-          // Don't set error state for aborted requests
+          if (DEBUG_MODE) console.log('Request was aborted');
         } else {
-          console.error(`Request error:`, err);
+          if (DEBUG_MODE) console.error(`Request error:`, err);
           setServerError(err.message || "Unknown error occurred");
         }
         setIsLoading(false);
@@ -100,7 +88,6 @@ export const useHttpClient = () => {
     []
   );
 
-  // Cleanup function to abort any in-progress requests when component unmounts
   useEffect(() => {
     return () => {
       activeHttpRequests.current.forEach((abortCtrl) => abortCtrl.abort());
