@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState, useMemo, useRef } from "react";
+import { useContext, useEffect, useState, useMemo } from "react";
 import { useHttpClient } from "hooks/http-hook";
 import { AuthContext } from "../../contexts/auth-context";
 import Modal from "@mui/material/Modal";
@@ -30,14 +30,9 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
 import Checkbox from "@mui/material/Checkbox";
 import ListItemText from "@mui/material/ListItemText";
+import Autocomplete from "@mui/material/Autocomplete";
 import OutlinedInput from "@mui/material/OutlinedInput";
-import {
-	Dialog,
-	DialogActions,
-	DialogContent,
-	DialogContentText,
-	DialogTitle,
-} from "@mui/material";
+import { Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle } from "@mui/material";
 
 interface User {
 	userId: number;
@@ -77,14 +72,9 @@ interface RecipeType {
 	mealTypes: MealType[];
 }
 
-function RecipeDetail({
-	recipeId,
-	open,
-	onClose,
-	onRecipeDeleted,
-}: RecipeDetailProps) {
+function RecipeDetail({ recipeId, open, onClose, onRecipeDeleted }: RecipeDetailProps) {
 	const auth = useContext(AuthContext);
-	const { isLoading, sendRequest } = useHttpClient();
+	const { isLoading, sendRequest, serverError } = useHttpClient();
 	const [recipe, setRecipe] = useState<RecipeType | null>(null);
 	const [isEditing, setIsEditing] = useState(false);
 	const [isSaving, setIsSaving] = useState(false);
@@ -96,95 +86,63 @@ function RecipeDetail({
 	const [ingredients, setIngredients] = useState<RecipeIngredient[]>([]);
 	const [loadingIngredients, setLoadingIngredients] = useState(false);
 	const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-	const [deleteStatus, setDeleteStatus] = useState<
-		"idle" | "deleting" | "success"
-	>("idle");
-	const isMounted = useRef(true);
-
-	// Track component mounted state
-	useEffect(() => {
-		return () => {
-			isMounted.current = false;
-		};
-	}, []);
+	const [deleteStatus, setDeleteStatus] = useState<'idle' | 'deleting' | 'success'>('idle');
 
 	// Fetch available meal types
 	useEffect(() => {
 		const fetchMealTypes = async () => {
-			if (!open) return;
-
 			try {
 				const responseData = await sendRequest(
 					`${process.env.REACT_APP_BACKEND_URL}/mealtypes`
 				);
-
-				if (isMounted.current) {
-					setAvailableMealTypes(responseData);
-				}
+				setAvailableMealTypes(responseData);
 			} catch (err) {
-				// Ignore AbortError since it's expected when component unmounts
-				if (err.name !== "AbortError" && isMounted.current) {
-					// Consider implementing proper error handling
-				}
+				console.log(err.message || serverError);
 			}
 		};
 
-		if (open) {
-			fetchMealTypes();
-		}
-	}, [sendRequest, open]);
+		fetchMealTypes();
+	}, [sendRequest, serverError]);
 
 	// Fetch recipe details
 	useEffect(() => {
 		const fetchRecipe = async () => {
-			if (
-				!recipeId ||
-				!open ||
-				deleteStatus === "deleting" ||
-				deleteStatus === "success"
-			)
-				return;
+			if (!recipeId || deleteStatus === 'deleting' || deleteStatus === 'success') return;
 
 			try {
 				const responseData = await sendRequest(
 					`${process.env.REACT_APP_BACKEND_URL}/recipes/${recipeId}`
 				);
+				setRecipe(responseData);
+				// Initialize edit form state with current recipe data
+				setEditFormState({
+					title: responseData.title,
+					preparationTime: responseData.preparationTime,
+					cookingTime: responseData.cookingTime,
+					difficultyLevel: responseData.difficultyLevel,
+					servings: responseData.servings,
+					steps: responseData.steps,
+					mealTypes: responseData.mealTypes || [],
+				});
 
-				if (isMounted.current) {
-					setRecipe(responseData);
-					// Initialize edit form state with current recipe data
-					setEditFormState({
-						title: responseData.title,
-						preparationTime: responseData.preparationTime,
-						cookingTime: responseData.cookingTime,
-						difficultyLevel: responseData.difficultyLevel,
-						servings: responseData.servings,
-						steps: responseData.steps,
-						mealTypes: responseData.mealTypes || [],
-					});
-
-					// Set selected meal types based on the recipe's meal types
-					if (
-						responseData.mealTypes &&
-						responseData.mealTypes.length > 0
-					) {
-						setSelectedMealTypes(
-							responseData.mealTypes.map(
-								(mt: MealType) => mt.mealTypeId
-							)
-						);
-					} else {
-						setSelectedMealTypes([]);
-					}
-
-					// Fetch ingredients for the recipe
-					fetchIngredients(recipeId);
+				// Set selected meal types based on the recipe's meal types
+				if (
+					responseData.mealTypes &&
+					responseData.mealTypes.length > 0
+				) {
+					setSelectedMealTypes(
+						responseData.mealTypes.map(
+							(mt: MealType) => mt.mealTypeId
+						)
+					);
+				} else {
+					setSelectedMealTypes([]);
 				}
+
+				// Fetch ingredients for the recipe
+				fetchIngredients(recipeId);
 			} catch (err) {
-				// Ignore AbortError since it's expected when component unmounts
-				if (err.name !== "AbortError" && isMounted.current) {
-					// Consider implementing proper error handling
-				}
+				console.log(err.message || serverError);
 			}
 		};
 
@@ -192,28 +150,20 @@ function RecipeDetail({
 			fetchRecipe();
 			setIsEditing(false); // Reset editing mode when opening modal
 		}
-	}, [recipeId, open, sendRequest, deleteStatus]);
+	}, [recipeId, open, sendRequest, serverError]);
 
 	// Fetch ingredients
 	const fetchIngredients = async (recipeId: number) => {
-		if (!isMounted.current) return;
-
 		setLoadingIngredients(true);
 		try {
 			const responseData = await sendRequest(
 				`${process.env.REACT_APP_BACKEND_URL}/recipes/${recipeId}/ingredients`
 			);
-
-			if (isMounted.current) {
-				setIngredients(responseData || []);
-				setLoadingIngredients(false);
-			}
+			setIngredients(responseData || []);
 		} catch (err) {
-			// Ignore AbortError since it's expected when component unmounts
-			if (err.name !== "AbortError" && isMounted.current) {
-				// Consider implementing proper error handling
-				setLoadingIngredients(false);
-			}
+			console.log(err.message || serverError);
+		} finally {
+			setLoadingIngredients(false);
 		}
 	};
 
@@ -319,7 +269,7 @@ function RecipeDetail({
 	};
 
 	const handleSaveEditing = async () => {
-		if (!recipe || !recipeId || !isMounted.current) return;
+		if (!recipe || !recipeId) return;
 
 		setIsSaving(true);
 		try {
@@ -352,23 +302,16 @@ function RecipeDetail({
 				}
 			);
 
-			if (isMounted.current) {
-				// Update local recipe state with response
-				setRecipe(responseData);
-				setIsEditing(false);
+			// Update local recipe state with response
+			setRecipe(responseData);
+			setIsEditing(false);
 
-				// Refresh the ingredients
-				fetchIngredients(recipeId);
-			}
+			// Refresh the ingredients
+			fetchIngredients(recipeId);
 		} catch (err) {
-			// Ignore AbortError since it's expected when component unmounts
-			if (err.name !== "AbortError" && isMounted.current) {
-				// Consider implementing proper error handling
-			}
+			console.log(err.message || serverError);
 		} finally {
-			if (isMounted.current) {
-				setIsSaving(false);
-			}
+			setIsSaving(false);
 		}
 	};
 
@@ -386,9 +329,9 @@ function RecipeDetail({
 	};
 
 	const handleDeleteRecipe = async () => {
-		if (!recipeId || !isMounted.current) return;
+		if (!recipeId) return;
 
-		setDeleteStatus("deleting");
+		setDeleteStatus('deleting');
 		try {
 			await sendRequest(
 				`${process.env.REACT_APP_BACKEND_URL}/recipes/${recipeId}`,
@@ -399,15 +342,10 @@ function RecipeDetail({
 				}
 			);
 
-			if (isMounted.current) {
-				setDeleteStatus("success");
-			}
+			setDeleteStatus('success');
 		} catch (err) {
-			// Ignore AbortError since it's expected when component unmounts
-			if (err.name !== "AbortError" && isMounted.current) {
-				// Consider implementing proper error handling
-				setDeleteStatus("idle");
-			}
+			console.log(err.message || serverError);
+			setDeleteStatus('idle');
 		}
 	};
 
@@ -417,7 +355,7 @@ function RecipeDetail({
 		if (onRecipeDeleted && recipeId) {
 			onRecipeDeleted(recipeId);
 		}
-		setDeleteStatus("idle"); // Reset for next time
+		setDeleteStatus('idle'); // Reset for next time
 	};
 
 	const isOwner = useMemo(() => {
@@ -432,44 +370,31 @@ function RecipeDetail({
 			{/* Delete Confirmation Dialog */}
 			<Dialog
 				open={deleteModalOpen}
-				onClose={() =>
-					deleteStatus === "idle" && setDeleteModalOpen(false)
-				}
+				onClose={() => deleteStatus === 'idle' && setDeleteModalOpen(false)}
 				aria-labelledby="delete-dialog-title"
 			>
-				{deleteStatus !== "success" ? (
+				{deleteStatus !== 'success' ? (
 					<>
-						<DialogTitle id="delete-dialog-title">
-							Delete Recipe
-						</DialogTitle>
+						<DialogTitle id="delete-dialog-title">Delete Recipe</DialogTitle>
 						<DialogContent>
 							<DialogContentText>
-								Are you sure you want to delete this recipe?
-								This action cannot be undone.
+								Are you sure you want to delete this recipe? This action cannot be undone.
 							</DialogContentText>
 						</DialogContent>
 						<DialogActions>
 							<Button
 								onClick={() => setDeleteModalOpen(false)}
-								disabled={deleteStatus === "deleting"}
+								disabled={deleteStatus === 'deleting'}
 							>
 								Cancel
 							</Button>
 							<Button
 								onClick={handleDeleteRecipe}
-								disabled={deleteStatus === "deleting"}
+								disabled={deleteStatus === 'deleting'}
 								color="error"
-								startIcon={
-									deleteStatus === "deleting" ? (
-										<CircularProgress size={20} />
-									) : (
-										<DeleteIcon />
-									)
-								}
+								startIcon={deleteStatus === 'deleting' ? <CircularProgress size={20} /> : <DeleteIcon />}
 							>
-								{deleteStatus === "deleting"
-									? "Deleting..."
-									: "Delete"}
+								{deleteStatus === 'deleting' ? "Deleting..." : "Delete"}
 							</Button>
 						</DialogActions>
 					</>
@@ -578,14 +503,13 @@ function RecipeDetail({
 						</Box>
 					)}
 
-					{!isLoading && !recipe && (
+					{!isLoading && !recipe && serverError && (
 						<Box sx={{ p: 3 }}>
-							<Typography
-								color="error"
-								align="center"
-								variant="h6"
-							>
+							<Typography color="error" align="center" variant="h6">
 								Error loading recipe
+							</Typography>
+							<Typography color="text.secondary" align="center">
+								{serverError}
 							</Typography>
 						</Box>
 					)}
@@ -671,9 +595,7 @@ function RecipeDetail({
 													name="servings"
 													label="Servings"
 													type="number"
-													value={
-														editFormState.servings
-													}
+													value={editFormState.servings}
 													onChange={handleChange}
 													variant="outlined"
 													size="small"
@@ -704,10 +626,7 @@ function RecipeDetail({
 												}}
 											/>
 											{isEditing ? (
-												<FormControl
-													fullWidth
-													size="small"
-												>
+												<FormControl fullWidth size="small">
 													<InputLabel id="difficulty-label">
 														Difficulty
 													</InputLabel>
@@ -734,15 +653,12 @@ function RecipeDetail({
 												</FormControl>
 											) : (
 												<Chip
-													label={
-														recipe.difficultyLevel
-													}
+													label={recipe.difficultyLevel}
 													size="small"
 													sx={{
-														bgcolor:
-															getDifficultyColor(
-																recipe.difficultyLevel
-															),
+														bgcolor: getDifficultyColor(
+															recipe.difficultyLevel
+														),
 														color: "white",
 														fontWeight: 500,
 													}}
@@ -793,27 +709,23 @@ function RecipeDetail({
 															gap: 0.5,
 														}}
 													>
-														{selected.map(
-															(value) => {
-																const mealType =
-																	availableMealTypes.find(
-																		(mt) =>
-																			mt.mealTypeId ===
-																			value
-																	);
-																return mealType ? (
-																	<Chip
-																		key={
-																			value
-																		}
-																		label={
-																			mealType.name
-																		}
-																		size="small"
-																	/>
-																) : null;
-															}
-														)}
+														{selected.map((value) => {
+															const mealType =
+																availableMealTypes.find(
+																	(mt) =>
+																		mt.mealTypeId ===
+																		value
+																);
+															return mealType ? (
+																<Chip
+																	key={value}
+																	label={
+																		mealType.name
+																	}
+																	size="small"
+																/>
+															) : null;
+														})}
 													</Box>
 												)}
 											>
@@ -853,21 +765,15 @@ function RecipeDetail({
 											}}
 										>
 											{recipe.mealTypes &&
-											recipe.mealTypes.length > 0 ? (
-												recipe.mealTypes.map(
-													(mealType) => (
-														<Chip
-															key={
-																mealType.mealTypeId
-															}
-															label={
-																mealType.name
-															}
-															size="small"
-															color="secondary"
-														/>
-													)
-												)
+												recipe.mealTypes.length > 0 ? (
+												recipe.mealTypes.map((mealType) => (
+													<Chip
+														key={mealType.mealTypeId}
+														label={mealType.name}
+														size="small"
+														color="secondary"
+													/>
+												))
 											) : (
 												<Typography
 													variant="body2"
@@ -888,9 +794,7 @@ function RecipeDetail({
 										spacing={1}
 										sx={{ mb: 1 }}
 									>
-										<KitchenIcon
-											sx={{ color: "#2196f3" }}
-										/>
+										<KitchenIcon sx={{ color: "#2196f3" }} />
 										<Typography
 											variant="subtitle1"
 											fontWeight="medium"
@@ -983,15 +887,13 @@ function RecipeDetail({
 														</Grid>
 														{index <
 															ingredients.length -
-																1 && (
-															<Grid item xs={12}>
-																<Divider
-																	sx={{
-																		my: 1,
-																	}}
-																/>
-															</Grid>
-														)}
+															1 && (
+																<Grid item xs={12}>
+																	<Divider
+																		sx={{ my: 1 }}
+																	/>
+																</Grid>
+															)}
 													</Grid>
 												)
 											)}
@@ -1008,17 +910,14 @@ function RecipeDetail({
 									) : (
 										<Box sx={{ mb: 3 }}>
 											{ingredients &&
-											ingredients.length > 0 ? (
+												ingredients.length > 0 ? (
 												<Paper
 													variant="outlined"
 													sx={{ p: 2 }}
 												>
 													<Grid container spacing={1}>
 														{ingredients.map(
-															(
-																ingredient,
-																index
-															) => (
+															(ingredient, index) => (
 																<Grid
 																	item
 																	xs={12}
@@ -1031,7 +930,7 @@ function RecipeDetail({
 																		sx={{
 																			borderBottom:
 																				index <
-																				ingredients.length -
+																					ingredients.length -
 																					1
 																					? "1px solid #eee"
 																					: "none",
@@ -1092,9 +991,7 @@ function RecipeDetail({
 										alignItems="center"
 										spacing={1}
 									>
-										<DateRangeIcon
-											sx={{ color: "#0288d1" }}
-										/>
+										<DateRangeIcon sx={{ color: "#0288d1" }} />
 										<Typography
 											variant="subtitle2"
 											color="text.secondary"
@@ -1130,12 +1027,10 @@ function RecipeDetail({
 											fullWidth
 											placeholder="Enter step-by-step instructions"
 											error={
-												editFormState.steps?.trim() ===
-												""
+												editFormState.steps?.trim() === ""
 											}
 											helperText={
-												editFormState.steps?.trim() ===
-												""
+												editFormState.steps?.trim() === ""
 													? "Preparation steps cannot be empty"
 													: ""
 											}
@@ -1181,13 +1076,12 @@ function RecipeDetail({
 												variant="outlined"
 												color="error"
 												startIcon={<DeleteIcon />}
-												onClick={() =>
-													setDeleteModalOpen(true)
-												}
+												onClick={() => setDeleteModalOpen(true)}
 											>
 												Delete Recipe
 											</Button>
 										</>
+
 									)}
 
 									{isEditing && (

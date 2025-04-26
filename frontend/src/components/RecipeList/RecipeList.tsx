@@ -1,4 +1,4 @@
-import { useEffect, useState, useContext, useMemo } from "react";
+import { useEffect, useState, useContext } from "react";
 import { AuthContext } from "../../contexts/auth-context";
 import { useHttpClient } from "hooks/http-hook";
 
@@ -122,14 +122,19 @@ function RecipeList() {
 		sortDirection: "asc",
 	});
 
-	// Update the getUserIdFromAuth function to be more reliable and remove unnecessary logging
+	// Update the getUserIdFromAuth function to be more reliable
 	const getUserIdFromAuth = (): number | null => {
 		if (!auth.isLoggedIn) return null;
 
 		try {
+			// In a real app, we would probably have the user ID directly in the auth context
+			// For now, let's try to extract it from the stored userData
 			const userData = localStorage.getItem("rmmps-userData");
 			if (userData) {
 				const parsedData = JSON.parse(userData);
+
+				// Debug what's in the stored data
+				console.log("UserData from localStorage:", parsedData);
 
 				// Check if we have a direct user object with ID
 				if (parsedData.user && parsedData.user.userId) {
@@ -139,6 +144,13 @@ function RecipeList() {
 				// Try to get the userId from the API
 				if (auth.userEmail) {
 					// We could do a lookup by email here if needed
+					console.log(
+						"Using email to identify user:",
+						auth.userEmail
+					);
+					// You might need to add an API call here to look up the user by email
+
+					// For now, return a fallback if you know the user ID pattern
 					return null; // Replace with actual logic if possible
 				}
 
@@ -146,7 +158,7 @@ function RecipeList() {
 			}
 			return null;
 		} catch (error) {
-			// Avoid console.log in production, consider using a proper logging service
+			console.error("Error getting user ID:", error);
 			return null;
 		}
 	};
@@ -178,6 +190,19 @@ function RecipeList() {
 		}
 	}, [searchParams.page]);
 
+	useEffect(() => {
+		if (auth.isLoggedIn) {
+			console.log("Auth context:", auth);
+			console.log("User Email:", auth.userEmail);
+
+			// Log what's in localStorage to debug
+			const userData = localStorage.getItem("rmmps-userData");
+			if (userData) {
+				console.log("User data in localStorage:", JSON.parse(userData));
+			}
+		}
+	}, [auth.isLoggedIn]);
+
 	const fetchAllRecipes = async () => {
 		try {
 			const responseData = await sendRequest(
@@ -187,8 +212,7 @@ function RecipeList() {
 			// Also update displayed recipes with sorting applied
 			applyInitialSorting(responseData);
 		} catch (err) {
-			// Consider implementing proper error handling instead of console.log
-			// You could set an error state and display a message to the user
+			console.log(err);
 		}
 	};
 
@@ -248,7 +272,7 @@ function RecipeList() {
 			);
 			setAvailableMealTypes(responseData);
 		} catch (err) {
-			// Handle error appropriately
+			console.log(err);
 		}
 	};
 
@@ -259,7 +283,7 @@ function RecipeList() {
 			);
 			setAvailableIngredients(responseData);
 		} catch (err) {
-			// Handle error appropriately
+			console.log(err);
 		}
 	};
 
@@ -367,7 +391,7 @@ function RecipeList() {
 			setSearchResults(responseData);
 			setSearchMode(true);
 		} catch (err) {
-			// Handle error appropriately
+			console.log(serverError || err);
 		}
 	};
 
@@ -382,7 +406,7 @@ function RecipeList() {
 	};
 
 	// Determine if any search filters are active
-	const hasActiveFilters = useMemo(() => {
+	const hasActiveFilters = () => {
 		return (
 			searchParams.title !== "" ||
 			searchParams.ingredientIds.length > 0 ||
@@ -394,7 +418,7 @@ function RecipeList() {
 			searchParams.mealTypeIds.length > 0 ||
 			searchParams.servings !== null
 		);
-	}, [searchParams]);
+	};
 
 	return (
 		<Box
@@ -590,6 +614,10 @@ function RecipeList() {
 															// Get the user ID when checkbox is checked
 															const userId =
 																getUserIdFromAuth();
+															console.log(
+																"Setting userId filter to:",
+																userId
+															);
 
 															if (
 																userId !== null
@@ -612,6 +640,10 @@ function RecipeList() {
 																		auth.userEmail.split(
 																			"@"
 																		)[0];
+																	console.log(
+																		"Falling back to username filter:",
+																		username
+																	);
 																	setSearchParams(
 																		(
 																			prev
@@ -623,6 +655,11 @@ function RecipeList() {
 																		})
 																	);
 																}
+
+																// Show some notification that we couldn't determine the user ID
+																console.error(
+																	"Could not determine user ID for filtering"
+																);
 															}
 														} else {
 															// Clear both the user ID and username filters when checkbox is unchecked
@@ -902,7 +939,7 @@ function RecipeList() {
 								? "Recipe"
 								: "Recipes"}{" "}
 							Found
-							{hasActiveFilters && (
+							{hasActiveFilters() && (
 								<Button
 									variant="text"
 									size="small"

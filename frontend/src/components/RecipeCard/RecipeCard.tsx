@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import Box from "@mui/material/Box";
 import Card from "@mui/material/Card";
 import CardHeader from "@mui/material/CardHeader";
@@ -113,16 +113,8 @@ function RecipeCard(props: RecipeType) {
 	const [detailOpen, setDetailOpen] = useState(false);
 	const [isHovered, setIsHovered] = useState(false);
 	const [ingredients, setIngredients] = useState<RecipeIngredient[]>([]);
-	const { sendRequest } = useHttpClient();
+	const { sendRequest, serverError } = useHttpClient();
 	const [isDeleted, setIsDeleted] = useState(false);
-	const isMounted = useRef(true);
-
-	useEffect(() => {
-		// Set up cleanup function to track component mounting state
-		return () => {
-			isMounted.current = false;
-		};
-	}, []);
 
 	useEffect(() => {
 		// Fetch ingredients for this recipe
@@ -131,20 +123,14 @@ function RecipeCard(props: RecipeType) {
 				const responseData = await sendRequest(
 					`${process.env.REACT_APP_BACKEND_URL}/recipes/${props.recipeId}/ingredients`
 				);
-				// Only update state if component is still mounted
-				if (isMounted.current) {
-					setIngredients(responseData || []);
-				}
+				setIngredients(responseData || []);
 			} catch (err) {
-				// Ignore AbortError - this is expected when component unmounts during fetch
-				if (err.name !== "AbortError" && isMounted.current) {
-					// Consider implementing proper error handling
-				}
+				console.log(err.message || serverError);
 			}
 		};
 
 		fetchIngredients();
-	}, [props.recipeId, sendRequest]);
+	}, [props.recipeId, sendRequest, serverError]);
 
 	const handleOpenDetail = () => {
 		setDetailOpen(true);
