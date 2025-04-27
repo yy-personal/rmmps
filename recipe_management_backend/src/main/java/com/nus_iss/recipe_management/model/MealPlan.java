@@ -18,8 +18,9 @@ public class MealPlan {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer mealPlanId;
 
+    @JsonIgnore
     @ManyToOne
-    @JoinColumn(name = "userId", nullable = false)
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
     @Column(nullable = false)

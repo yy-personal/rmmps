@@ -15,6 +15,7 @@ public class Recipe {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer recipeId;
 
+    @JsonIgnore
     @ManyToOne
     @JoinColumn(name = "userId", nullable = false)
     private User user;

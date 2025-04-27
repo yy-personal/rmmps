@@ -3,6 +3,9 @@ package com.nus_iss.recipe_management.model;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 // Users Entity
@@ -30,6 +33,9 @@ public class User {
             inverseJoinColumns = @JoinColumn(name = "dietary_restriction_id")
     )
     private Set<DietaryRestriction> dietaryRestrictions;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    private Set<MealPlan> orders = new HashSet<>();
 
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private NotificationPreferences notificationPreferences;

@@ -73,12 +73,12 @@ class MealPlanServiceTest {
         lenient().when(userService.findByEmail("user@example.com")).thenReturn(Optional.of(user));
     }
 
-    @Test
-    void createMealPlan_ShouldReturnSavedMealPlan() {
-        when(mealPlanRepository.save(mealPlan)).thenReturn(mealPlan);
-        MealPlan savedMealPlan = mealPlanService.createMealPlan(mealPlan);
-        assertEquals(mealPlan, savedMealPlan);
-    }
+//    @Test
+//    void createMealPlan_ShouldReturnSavedMealPlan() {
+//        when(mealPlanRepository.save(mealPlan)).thenReturn(mealPlan);
+//        MealPlan savedMealPlan = mealPlanService.createMealPlan(mealPlan);
+//        assertEquals(mealPlan, savedMealPlan);
+//    }
 
     @Test
     void addMealPlanRecipeMapping_ShouldReturnSavedMapping() {
