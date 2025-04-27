@@ -35,7 +35,10 @@ public class User {
     private Set<DietaryRestriction> dietaryRestrictions;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
-    private Set<MealPlan> orders = new HashSet<>();
+    private Set<MealPlan> mealPlans = new HashSet<>();
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    private Set<Notification> notifications = new HashSet<>();
 
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private NotificationPreferences notificationPreferences;

@@ -41,4 +41,7 @@ public class MealPlan {
 
     @OneToMany(mappedBy = "mealPlan", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<MealPlanRecipeMapping> recipes = new HashSet<>();
+
+    @OneToMany(mappedBy = "mealPlan", cascade = CascadeType.ALL)
+    private Set<Notification> notifications = new HashSet<>();
 }
