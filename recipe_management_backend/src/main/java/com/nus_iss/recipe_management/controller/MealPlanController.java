@@ -3,6 +3,7 @@ package com.nus_iss.recipe_management.controller;
 import com.nus_iss.recipe_management.exception.MealPlanNotFoundException;
 import com.nus_iss.recipe_management.exception.RecipeAlreadyInMealPlanException;
 import com.nus_iss.recipe_management.exception.RecipeNotFoundException;
+import com.nus_iss.recipe_management.model.Frequency;
 import com.nus_iss.recipe_management.model.MealPlan;
 import com.nus_iss.recipe_management.model.MealPlanRecipeMapping;
 import com.nus_iss.recipe_management.service.MealPlanService;
@@ -11,11 +12,13 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
@@ -31,10 +34,10 @@ public class MealPlanController {
             @ApiResponse(responseCode = "401", description = "Unauthorized")
     })
     @PostMapping("/create")
-    public ResponseEntity<MealPlan> createMealPlan(@RequestBody MealPlan mealPlan) {
+    public ResponseEntity<MealPlan> createMealPlan(@RequestParam Integer userId, @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime endDate, @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime startDate, @RequestParam Frequency frequency, @RequestParam String title, @RequestParam Integer mealsPerDay) {
         ResponseEntity<MealPlan> response;
         try {
-            MealPlan createdMealPlan = mealPlanService.createMealPlan(mealPlan);
+            MealPlan createdMealPlan = mealPlanService.createMealPlan(userId, endDate, startDate, frequency, title, mealsPerDay);
             response = ResponseEntity.ok(createdMealPlan);
         } catch (AccessDeniedException ex) {
             response = ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();

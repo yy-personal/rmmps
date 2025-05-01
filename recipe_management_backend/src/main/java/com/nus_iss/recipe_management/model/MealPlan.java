@@ -18,8 +18,9 @@ public class MealPlan {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer mealPlanId;
 
+    @JsonIgnore
     @ManyToOne
-    @JoinColumn(name = "userId", nullable = false)
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
     @Column(nullable = false)
@@ -40,4 +41,7 @@ public class MealPlan {
 
     @OneToMany(mappedBy = "mealPlan", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<MealPlanRecipeMapping> recipes = new HashSet<>();
+
+    @OneToMany(mappedBy = "mealPlan", cascade = CascadeType.ALL)
+    private Set<Notification> notifications = new HashSet<>();
 }

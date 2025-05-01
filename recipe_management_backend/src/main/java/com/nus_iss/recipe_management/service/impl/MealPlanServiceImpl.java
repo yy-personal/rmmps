@@ -20,6 +20,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -31,14 +32,25 @@ public class MealPlanServiceImpl implements MealPlanService {
     private final UserService userService;
 
     @Override
-    public MealPlan createMealPlan(MealPlan mealPlan) {
+    public MealPlan createMealPlan(Integer userId, LocalDateTime endDate, LocalDateTime startDate, Frequency frequency, String title, Integer mealsPerDay) {
 
         // 🔐 Get the currently authenticated user's ID
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = ((UserDetails) authentication.getPrincipal()).getUsername();
-        User user = userService.findByEmail(username).orElseThrow(() -> new AuthenticationCredentialsNotFoundException("Value not present"));;
+        User user = userService.findByEmail(username).orElseThrow(() -> new AuthenticationCredentialsNotFoundException("Value not present"));
 
+        // Check if the authenticated user owns the meal plan
+        if (!user.getUserId().equals(userId)) {
+            throw new AccessDeniedException("You do not have permission to modify this meal plan.");
+        }
+
+        MealPlan mealPlan = new MealPlan();
         mealPlan.setUser(user);
+        mealPlan.setEndDate(endDate);
+        mealPlan.setStartDate(startDate);
+        mealPlan.setFrequency(frequency);
+        mealPlan.setTitle(title);
+        mealPlan.setMealsPerDay(mealsPerDay);
 
         return mealPlanRepository.save(mealPlan);
     }
