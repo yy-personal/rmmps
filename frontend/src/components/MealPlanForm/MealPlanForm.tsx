@@ -71,6 +71,7 @@ function MealPlanForm() {
 				`${process.env.REACT_APP_BACKEND_URL}/mealPlans/create`,
 				"POST",
 				JSON.stringify({
+					userEmail: auth.userEmail,
 					title: mealPlanFormState.title,
 					frequency:
 						mealPlanFormState.frequency === ""
