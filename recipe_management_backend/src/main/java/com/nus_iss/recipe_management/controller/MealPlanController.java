@@ -34,10 +34,10 @@ public class MealPlanController {
             @ApiResponse(responseCode = "401", description = "Unauthorized")
     })
     @PostMapping("/create")
-    public ResponseEntity<MealPlan> createMealPlan(@RequestParam Integer userId, @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime endDate, @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime startDate, @RequestParam Frequency frequency, @RequestParam String title, @RequestParam Integer mealsPerDay) {
+    public ResponseEntity<MealPlan> createMealPlan(@RequestParam String userEmail, @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime endDate, @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime startDate, @RequestParam Frequency frequency, @RequestParam String title, @RequestParam Integer mealsPerDay) {
         ResponseEntity<MealPlan> response;
         try {
-            MealPlan createdMealPlan = mealPlanService.createMealPlan(userId, endDate, startDate, frequency, title, mealsPerDay);
+            MealPlan createdMealPlan = mealPlanService.createMealPlan(userEmail, endDate, startDate, frequency, title, mealsPerDay);
             response = ResponseEntity.ok(createdMealPlan);
         } catch (AccessDeniedException ex) {
             response = ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
