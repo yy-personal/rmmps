@@ -1,5 +1,7 @@
 package com.nus_iss.recipe_management.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
@@ -35,6 +37,7 @@ public class User {
     private Set<DietaryRestriction> dietaryRestrictions;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    @JsonIgnore
     private Set<MealPlan> mealPlans = new HashSet<>();
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
