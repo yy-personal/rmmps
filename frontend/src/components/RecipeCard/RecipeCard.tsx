@@ -100,8 +100,8 @@ const getDifficultyColor = (level: string) => {
 };
 
 // Function to get user initials for avatar
-const getUserInitials = (email: string) => {
-	if (!email) return "U";
+const getUserInitials = (email?: string) => {
+	if (!email) return "U"; 
 	// Get the part before @ symbol
 	const username = email.split("@")[0];
 	// Return first character or first two characters
@@ -183,7 +183,7 @@ function RecipeCard(props: RecipeType) {
 					<CardHeader
 						avatar={
 							<Avatar sx={{ bgcolor: backgroundColor }}>
-								{getUserInitials(props.user.email)}
+								{getUserInitials(props.user?.email)}
 							</Avatar>
 						}
 						title={props.title}
@@ -194,7 +194,10 @@ function RecipeCard(props: RecipeType) {
 								component="div"
 								sx={{ mt: 0.5 }}
 							>
-								by {props.user.email.split("@")[0]}
+								by{" "}
+								{props.user?.email
+									? props.user.email.split("@")[0]
+									: "Unknown"}
 							</Typography>
 						}
 					/>
