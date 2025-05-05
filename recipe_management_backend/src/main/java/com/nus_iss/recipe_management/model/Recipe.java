@@ -2,10 +2,13 @@ package com.nus_iss.recipe_management.model;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 @Entity
@@ -62,8 +65,18 @@ public class Recipe {
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
-    @JsonIgnore // To prevent recursive get in JSON response
+    // Keep this JsonIgnore to prevent circular references
+    @JsonIgnore
     public Set<MealPlanRecipeMapping> getMealPlans() {
         return mealPlans;
+    }
+
+    @JsonProperty("user")
+    public Map<String, Object> getUserForJson() {
+        if (user == null) return null;
+        Map<String, Object> userMap = new HashMap<>();
+        userMap.put("userId", user.getUserId());
+        userMap.put("email", user.getEmail());
+        return userMap;
     }
 }
