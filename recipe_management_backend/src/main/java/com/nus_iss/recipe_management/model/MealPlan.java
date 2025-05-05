@@ -1,5 +1,6 @@
 package com.nus_iss.recipe_management.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
@@ -18,8 +19,9 @@ public class MealPlan {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer mealPlanId;
 
-    @JsonIgnore
+//    @JsonIgnore
     @ManyToOne
+    @JsonBackReference
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 

@@ -1,5 +1,6 @@
 package com.nus_iss.recipe_management.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
@@ -15,8 +16,9 @@ public class Recipe {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer recipeId;
 
-    @JsonIgnore
+//    @JsonIgnore
     @ManyToOne
+//    @JsonBackReference
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
@@ -51,6 +53,7 @@ public class Recipe {
     private Set<MealType> mealTypes = new HashSet<>();
 
     @OneToMany(mappedBy = "recipe", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonBackReference
     private Set<MealPlanRecipeMapping> mealPlans = new HashSet<>();
 
     @OneToMany(mappedBy = "recipe", cascade = CascadeType.ALL, orphanRemoval = true)
