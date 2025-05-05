@@ -208,9 +208,22 @@ function RecipeList() {
 			const responseData = await sendRequest(
 				`${process.env.REACT_APP_BACKEND_URL}/recipes`
 			);
-			setRecipes(responseData);
+
+			// Ensure all recipes have the expected structure
+			const validRecipes = responseData.map((recipe: RecipeType) => {
+				// Make sure user object exists, with fallback if needed
+				return {
+					...recipe,
+					user: recipe.user || {
+						userId: 0,
+						email: "unknown@example.com",
+					},
+				};
+			});
+
+			setRecipes(validRecipes);
 			// Also update displayed recipes with sorting applied
-			applyInitialSorting(responseData);
+			applyInitialSorting(validRecipes);
 		} catch (err) {
 			console.log(err);
 		}
@@ -388,6 +401,20 @@ function RecipeList() {
 					"Content-Type": "application/json",
 				}
 			);
+
+			// Ensure all recipes in search results have the expected structure
+			if (responseData.content) {
+				responseData.content = responseData.content.map(
+					(recipe: RecipeType) => ({
+						...recipe,
+						user: recipe.user || {
+							userId: 0,
+							email: "unknown@example.com",
+						},
+					})
+				);
+			}
+
 			setSearchResults(responseData);
 			setSearchMode(true);
 		} catch (err) {
@@ -970,7 +997,12 @@ function RecipeList() {
 									key={recipe.recipeId}
 									recipeId={recipe.recipeId}
 									title={recipe.title}
-									user={recipe.user}
+									user={
+										recipe.user || {
+											userId: 0,
+											email: "unknown@example.com",
+										}
+									}
 									preparationTime={recipe.preparationTime}
 									cookingTime={recipe.cookingTime}
 									difficultyLevel={recipe.difficultyLevel}
@@ -1022,7 +1054,12 @@ function RecipeList() {
 								key={recipe.recipeId}
 								recipeId={recipe.recipeId}
 								title={recipe.title}
-								user={recipe.user}
+								user={
+									recipe.user || {
+										userId: 0,
+										email: "unknown@example.com",
+									}
+								}
 								preparationTime={recipe.preparationTime}
 								cookingTime={recipe.cookingTime}
 								difficultyLevel={recipe.difficultyLevel}

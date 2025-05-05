@@ -32,7 +32,13 @@ import Checkbox from "@mui/material/Checkbox";
 import ListItemText from "@mui/material/ListItemText";
 import Autocomplete from "@mui/material/Autocomplete";
 import OutlinedInput from "@mui/material/OutlinedInput";
-import { Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle } from "@mui/material";
+import {
+	Dialog,
+	DialogActions,
+	DialogContent,
+	DialogContentText,
+	DialogTitle,
+} from "@mui/material";
 
 interface User {
 	userId: number;
@@ -72,7 +78,12 @@ interface RecipeType {
 	mealTypes: MealType[];
 }
 
-function RecipeDetail({ recipeId, open, onClose, onRecipeDeleted }: RecipeDetailProps) {
+function RecipeDetail({
+	recipeId,
+	open,
+	onClose,
+	onRecipeDeleted,
+}: RecipeDetailProps) {
 	const auth = useContext(AuthContext);
 	const { isLoading, sendRequest, serverError } = useHttpClient();
 	const [recipe, setRecipe] = useState<RecipeType | null>(null);
@@ -86,7 +97,9 @@ function RecipeDetail({ recipeId, open, onClose, onRecipeDeleted }: RecipeDetail
 	const [ingredients, setIngredients] = useState<RecipeIngredient[]>([]);
 	const [loadingIngredients, setLoadingIngredients] = useState(false);
 	const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-	const [deleteStatus, setDeleteStatus] = useState<'idle' | 'deleting' | 'success'>('idle');
+	const [deleteStatus, setDeleteStatus] = useState<
+		"idle" | "deleting" | "success"
+	>("idle");
 
 	// Fetch available meal types
 	useEffect(() => {
@@ -107,7 +120,12 @@ function RecipeDetail({ recipeId, open, onClose, onRecipeDeleted }: RecipeDetail
 	// Fetch recipe details
 	useEffect(() => {
 		const fetchRecipe = async () => {
-			if (!recipeId || deleteStatus === 'deleting' || deleteStatus === 'success') return;
+			if (
+				!recipeId ||
+				deleteStatus === "deleting" ||
+				deleteStatus === "success"
+			)
+				return;
 
 			try {
 				const responseData = await sendRequest(
@@ -331,7 +349,7 @@ function RecipeDetail({ recipeId, open, onClose, onRecipeDeleted }: RecipeDetail
 	const handleDeleteRecipe = async () => {
 		if (!recipeId) return;
 
-		setDeleteStatus('deleting');
+		setDeleteStatus("deleting");
 		try {
 			await sendRequest(
 				`${process.env.REACT_APP_BACKEND_URL}/recipes/${recipeId}`,
@@ -342,10 +360,10 @@ function RecipeDetail({ recipeId, open, onClose, onRecipeDeleted }: RecipeDetail
 				}
 			);
 
-			setDeleteStatus('success');
+			setDeleteStatus("success");
 		} catch (err) {
 			console.log(err.message || serverError);
-			setDeleteStatus('idle');
+			setDeleteStatus("idle");
 		}
 	};
 
@@ -355,13 +373,11 @@ function RecipeDetail({ recipeId, open, onClose, onRecipeDeleted }: RecipeDetail
 		if (onRecipeDeleted && recipeId) {
 			onRecipeDeleted(recipeId);
 		}
-		setDeleteStatus('idle'); // Reset for next time
+		setDeleteStatus("idle"); // Reset for next time
 	};
 
 	const isOwner = useMemo(() => {
 		if (!auth.isLoggedIn || !recipe || !recipe.user) return false;
-
-		// Check if the logged-in user is the creator of this recipe
 		return recipe.user.email === auth.userEmail;
 	}, [auth.isLoggedIn, auth.userEmail, recipe]);
 
@@ -370,31 +386,44 @@ function RecipeDetail({ recipeId, open, onClose, onRecipeDeleted }: RecipeDetail
 			{/* Delete Confirmation Dialog */}
 			<Dialog
 				open={deleteModalOpen}
-				onClose={() => deleteStatus === 'idle' && setDeleteModalOpen(false)}
+				onClose={() =>
+					deleteStatus === "idle" && setDeleteModalOpen(false)
+				}
 				aria-labelledby="delete-dialog-title"
 			>
-				{deleteStatus !== 'success' ? (
+				{deleteStatus !== "success" ? (
 					<>
-						<DialogTitle id="delete-dialog-title">Delete Recipe</DialogTitle>
+						<DialogTitle id="delete-dialog-title">
+							Delete Recipe
+						</DialogTitle>
 						<DialogContent>
 							<DialogContentText>
-								Are you sure you want to delete this recipe? This action cannot be undone.
+								Are you sure you want to delete this recipe?
+								This action cannot be undone.
 							</DialogContentText>
 						</DialogContent>
 						<DialogActions>
 							<Button
 								onClick={() => setDeleteModalOpen(false)}
-								disabled={deleteStatus === 'deleting'}
+								disabled={deleteStatus === "deleting"}
 							>
 								Cancel
 							</Button>
 							<Button
 								onClick={handleDeleteRecipe}
-								disabled={deleteStatus === 'deleting'}
+								disabled={deleteStatus === "deleting"}
 								color="error"
-								startIcon={deleteStatus === 'deleting' ? <CircularProgress size={20} /> : <DeleteIcon />}
+								startIcon={
+									deleteStatus === "deleting" ? (
+										<CircularProgress size={20} />
+									) : (
+										<DeleteIcon />
+									)
+								}
 							>
-								{deleteStatus === 'deleting' ? "Deleting..." : "Delete"}
+								{deleteStatus === "deleting"
+									? "Deleting..."
+									: "Delete"}
 							</Button>
 						</DialogActions>
 					</>
@@ -505,7 +534,11 @@ function RecipeDetail({ recipeId, open, onClose, onRecipeDeleted }: RecipeDetail
 
 					{!isLoading && !recipe && serverError && (
 						<Box sx={{ p: 3 }}>
-							<Typography color="error" align="center" variant="h6">
+							<Typography
+								color="error"
+								align="center"
+								variant="h6"
+							>
 								Error loading recipe
 							</Typography>
 							<Typography color="text.secondary" align="center">
@@ -595,7 +628,9 @@ function RecipeDetail({ recipeId, open, onClose, onRecipeDeleted }: RecipeDetail
 													name="servings"
 													label="Servings"
 													type="number"
-													value={editFormState.servings}
+													value={
+														editFormState.servings
+													}
 													onChange={handleChange}
 													variant="outlined"
 													size="small"
@@ -620,13 +655,18 @@ function RecipeDetail({ recipeId, open, onClose, onRecipeDeleted }: RecipeDetail
 										>
 											<SignalCellularAltIcon
 												sx={{
-													color: getDifficultyColor(
-														recipe.difficultyLevel
-													),
+													color: recipe?.difficultyLevel
+														? getDifficultyColor(
+																recipe.difficultyLevel
+														  )
+														: "#757575",
 												}}
 											/>
 											{isEditing ? (
-												<FormControl fullWidth size="small">
+												<FormControl
+													fullWidth
+													size="small"
+												>
 													<InputLabel id="difficulty-label">
 														Difficulty
 													</InputLabel>
@@ -653,12 +693,18 @@ function RecipeDetail({ recipeId, open, onClose, onRecipeDeleted }: RecipeDetail
 												</FormControl>
 											) : (
 												<Chip
-													label={recipe.difficultyLevel}
+													label={
+														recipe?.difficultyLevel ||
+														"UNKNOWN"
+													}
 													size="small"
 													sx={{
-														bgcolor: getDifficultyColor(
-															recipe.difficultyLevel
-														),
+														bgcolor:
+															recipe?.difficultyLevel
+																? getDifficultyColor(
+																		recipe.difficultyLevel
+																  )
+																: "#757575",
 														color: "white",
 														fontWeight: 500,
 													}}
@@ -709,23 +755,27 @@ function RecipeDetail({ recipeId, open, onClose, onRecipeDeleted }: RecipeDetail
 															gap: 0.5,
 														}}
 													>
-														{selected.map((value) => {
-															const mealType =
-																availableMealTypes.find(
-																	(mt) =>
-																		mt.mealTypeId ===
-																		value
-																);
-															return mealType ? (
-																<Chip
-																	key={value}
-																	label={
-																		mealType.name
-																	}
-																	size="small"
-																/>
-															) : null;
-														})}
+														{selected.map(
+															(value) => {
+																const mealType =
+																	availableMealTypes.find(
+																		(mt) =>
+																			mt.mealTypeId ===
+																			value
+																	);
+																return mealType ? (
+																	<Chip
+																		key={
+																			value
+																		}
+																		label={
+																			mealType.name
+																		}
+																		size="small"
+																	/>
+																) : null;
+															}
+														)}
 													</Box>
 												)}
 											>
@@ -764,16 +814,22 @@ function RecipeDetail({ recipeId, open, onClose, onRecipeDeleted }: RecipeDetail
 												flexWrap: "wrap",
 											}}
 										>
-											{recipe.mealTypes &&
-												recipe.mealTypes.length > 0 ? (
-												recipe.mealTypes.map((mealType) => (
-													<Chip
-														key={mealType.mealTypeId}
-														label={mealType.name}
-														size="small"
-														color="secondary"
-													/>
-												))
+											{recipe?.mealTypes &&
+											recipe.mealTypes.length > 0 ? (
+												recipe.mealTypes.map(
+													(mealType) => (
+														<Chip
+															key={
+																mealType.mealTypeId
+															}
+															label={
+																mealType.name
+															}
+															size="small"
+															color="secondary"
+														/>
+													)
+												)
 											) : (
 												<Typography
 													variant="body2"
@@ -794,7 +850,9 @@ function RecipeDetail({ recipeId, open, onClose, onRecipeDeleted }: RecipeDetail
 										spacing={1}
 										sx={{ mb: 1 }}
 									>
-										<KitchenIcon sx={{ color: "#2196f3" }} />
+										<KitchenIcon
+											sx={{ color: "#2196f3" }}
+										/>
 										<Typography
 											variant="subtitle1"
 											fontWeight="medium"
@@ -887,13 +945,15 @@ function RecipeDetail({ recipeId, open, onClose, onRecipeDeleted }: RecipeDetail
 														</Grid>
 														{index <
 															ingredients.length -
-															1 && (
-																<Grid item xs={12}>
-																	<Divider
-																		sx={{ my: 1 }}
-																	/>
-																</Grid>
-															)}
+																1 && (
+															<Grid item xs={12}>
+																<Divider
+																	sx={{
+																		my: 1,
+																	}}
+																/>
+															</Grid>
+														)}
 													</Grid>
 												)
 											)}
@@ -910,14 +970,17 @@ function RecipeDetail({ recipeId, open, onClose, onRecipeDeleted }: RecipeDetail
 									) : (
 										<Box sx={{ mb: 3 }}>
 											{ingredients &&
-												ingredients.length > 0 ? (
+											ingredients.length > 0 ? (
 												<Paper
 													variant="outlined"
 													sx={{ p: 2 }}
 												>
 													<Grid container spacing={1}>
 														{ingredients.map(
-															(ingredient, index) => (
+															(
+																ingredient,
+																index
+															) => (
 																<Grid
 																	item
 																	xs={12}
@@ -930,7 +993,7 @@ function RecipeDetail({ recipeId, open, onClose, onRecipeDeleted }: RecipeDetail
 																		sx={{
 																			borderBottom:
 																				index <
-																					ingredients.length -
+																				ingredients.length -
 																					1
 																					? "1px solid #eee"
 																					: "none",
@@ -982,7 +1045,9 @@ function RecipeDetail({ recipeId, open, onClose, onRecipeDeleted }: RecipeDetail
 											variant="subtitle1"
 											fontWeight="medium"
 										>
-											Created by {recipe.user.email}
+											Created by{" "}
+											{recipe?.user?.email ||
+												"Unknown user"}
 										</Typography>
 									</Stack>
 
@@ -991,15 +1056,19 @@ function RecipeDetail({ recipeId, open, onClose, onRecipeDeleted }: RecipeDetail
 										alignItems="center"
 										spacing={1}
 									>
-										<DateRangeIcon sx={{ color: "#0288d1" }} />
+										<DateRangeIcon
+											sx={{ color: "#0288d1" }}
+										/>
 										<Typography
 											variant="subtitle2"
 											color="text.secondary"
 										>
 											Created on{" "}
-											{new Date(
-												recipe.createdAt
-											).toLocaleDateString()}
+											{recipe?.createdAt
+												? new Date(
+														recipe.createdAt
+												  ).toLocaleDateString()
+												: "Unknown date"}
 										</Typography>
 									</Stack>
 								</Box>
@@ -1027,10 +1096,12 @@ function RecipeDetail({ recipeId, open, onClose, onRecipeDeleted }: RecipeDetail
 											fullWidth
 											placeholder="Enter step-by-step instructions"
 											error={
-												editFormState.steps?.trim() === ""
+												editFormState.steps?.trim() ===
+												""
 											}
 											helperText={
-												editFormState.steps?.trim() === ""
+												editFormState.steps?.trim() ===
+												""
 													? "Preparation steps cannot be empty"
 													: ""
 											}
@@ -1047,7 +1118,7 @@ function RecipeDetail({ recipeId, open, onClose, onRecipeDeleted }: RecipeDetail
 												border: "1px solid #e0e0e0",
 											}}
 										>
-											{recipe.steps ||
+											{recipe?.steps ||
 												"No steps provided for this recipe."}
 										</Typography>
 									)}
@@ -1076,12 +1147,13 @@ function RecipeDetail({ recipeId, open, onClose, onRecipeDeleted }: RecipeDetail
 												variant="outlined"
 												color="error"
 												startIcon={<DeleteIcon />}
-												onClick={() => setDeleteModalOpen(true)}
+												onClick={() =>
+													setDeleteModalOpen(true)
+												}
 											>
 												Delete Recipe
 											</Button>
 										</>
-
 									)}
 
 									{isEditing && (
