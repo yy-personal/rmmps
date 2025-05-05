@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public interface MealPlanService {
-    MealPlan createMealPlan(Integer userId, LocalDateTime endDate, LocalDateTime startDate, Frequency frequency, String title, Integer mealsPerDay);
+    MealPlan createMealPlan(String userEmail, LocalDateTime endDate, LocalDateTime startDate, Frequency frequency, String title, Integer mealsPerDay);
     List<MealPlan> getAllMealPlans();
     MealPlan getMealPlanById(Integer id);
     MealPlan updateMealPlan(Integer id, MealPlan mealPlan) throws MealPlanNotFoundException;
