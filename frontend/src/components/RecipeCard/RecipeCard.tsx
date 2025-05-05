@@ -189,16 +189,25 @@ function RecipeCard(props: RecipeType) {
 						title={props.title}
 						titleTypographyProps={{ fontWeight: "bold" }}
 						subheader={
-							<Typography
-								variant="caption"
-								component="div"
-								sx={{ mt: 0.5 }}
+							<Box
+								sx={{
+									display: "flex",
+									alignItems: "center",
+									mt: 0.5,
+								}}
 							>
-								by{" "}
-								{props.user?.email
-									? props.user.email.split("@")[0]
-									: "Unknown"}
-							</Typography>
+								<AccessTimeIcon
+									fontSize="small"
+									sx={{ mr: 0.5, color: "text.secondary" }}
+								/>
+								<Typography
+									variant="caption"
+									color="text.secondary"
+								>
+									{props.preparationTime + props.cookingTime}{" "}
+									min
+								</Typography>
+							</Box>
 						}
 					/>
 					<CardMedia

@@ -24,8 +24,7 @@ import PersonIcon from "@mui/icons-material/Person";
 import DateRangeIcon from "@mui/icons-material/DateRange";
 import SignalCellularAltIcon from "@mui/icons-material/SignalCellularAlt";
 import Chip from "@mui/material/Chip";
-import { toast } from 'react-toastify';
-
+import { toast } from "react-toastify";
 
 interface User {
 	userId: number;
@@ -45,19 +44,26 @@ interface MealPlanType {
 	mealPlanId: number;
 	title: string;
 	frequency: number;
-    mealsPerDay: number;
-    startDate: Date;
-    endDate: Date;
-	user: User;
+	mealsPerDay: number;
+	startDate: Date;
+	endDate: Date;
+	user?: User;
 }
 
-function MealPlanDetail({ mealPlanId, open, onClose, onDelete }: MealPlanDetailProps) {
+function MealPlanDetail({
+	mealPlanId,
+	open,
+	onClose,
+	onDelete,
+}: MealPlanDetailProps) {
 	const auth = useContext(AuthContext);
 	const { isLoading, sendRequest, serverError } = useHttpClient();
 	const [MealPlan, setMealPlan] = useState<MealPlanType | null>(null);
 	const [isEditing, setIsEditing] = useState(false);
 	const [isSaving, setIsSaving] = useState(false);
-	const [editFormState, setEditFormState] = useState<Partial<MealPlanType>>({});
+	const [editFormState, setEditFormState] = useState<Partial<MealPlanType>>(
+		{}
+	);
 
 	useEffect(() => {
 		const fetchMealPlan = async () => {
@@ -77,7 +83,7 @@ function MealPlanDetail({ mealPlanId, open, onClose, onDelete }: MealPlanDetailP
 					frequency: responseData.frequency,
 					mealsPerDay: responseData.mealsPerDay,
 					startDate: responseData.startDate,
-					endDate: responseData.endDate
+					endDate: responseData.endDate,
 				});
 			} catch (err) {
 				console.log(err.message || serverError);
@@ -97,7 +103,12 @@ function MealPlanDetail({ mealPlanId, open, onClose, onDelete }: MealPlanDetailP
 		setEditFormState({
 			...editFormState,
 			// Convert to number if it's a number input, or to Date if it's a date input
-			[name]: type === "number" ? Number(value) : type === "date" ? new Date(value) : value,
+			[name]:
+				type === "number"
+					? Number(value)
+					: type === "date"
+					? new Date(value)
+					: value,
 		});
 	};
 
@@ -109,11 +120,11 @@ function MealPlanDetail({ mealPlanId, open, onClose, onDelete }: MealPlanDetailP
 		if (MealPlan) {
 			// Reset form to current MealPlan data
 			setEditFormState({
-                title: MealPlan.title,
-                frequency: MealPlan.frequency,
-                mealsPerDay: MealPlan.mealsPerDay,
-                startDate: MealPlan.startDate,
-                endDate: MealPlan.endDate
+				title: MealPlan.title,
+				frequency: MealPlan.frequency,
+				mealsPerDay: MealPlan.mealsPerDay,
+				startDate: MealPlan.startDate,
+				endDate: MealPlan.endDate,
 			});
 		}
 		setIsEditing(false);
@@ -193,7 +204,7 @@ function MealPlanDetail({ mealPlanId, open, onClose, onDelete }: MealPlanDetailP
 				}
 			);
 			setMealPlan(null);
-			onClose(); 
+			onClose();
 			onDelete(mealPlanId);
 			toast.success("MealPlan deleted successfully", {
 				position: "top-right",
@@ -204,7 +215,6 @@ function MealPlanDetail({ mealPlanId, open, onClose, onDelete }: MealPlanDetailP
 				draggable: true,
 				progress: undefined,
 			});
-
 		} catch (err) {
 			console.log(err.message || serverError);
 			toast.error("Failed to delete MealPlan", {
@@ -340,9 +350,7 @@ function MealPlanDetail({ mealPlanId, open, onClose, onDelete }: MealPlanDetailP
 												name="frequency"
 												label="Frequency"
 												type="string"
-												value={
-													editFormState.frequency
-												}
+												value={editFormState.frequency}
 												onChange={handleChange}
 												variant="outlined"
 												size="small"
@@ -400,12 +408,18 @@ function MealPlanDetail({ mealPlanId, open, onClose, onDelete }: MealPlanDetailP
 											sx={{ color: "#2e7d32" }}
 										/>
 										{isEditing ? (
-                                            
 											<TextField
 												name="startDate"
 												label="Start Date"
 												type="date"
-												value={(editFormState.startDate ?? new Date()).toISOString().split("T")[0]}
+												value={
+													(
+														editFormState.startDate ??
+														new Date()
+													)
+														.toISOString()
+														.split("T")[0]
+												}
 												onChange={handleChange}
 												variant="outlined"
 												size="small"
@@ -418,8 +432,8 @@ function MealPlanDetail({ mealPlanId, open, onClose, onDelete }: MealPlanDetailP
 										)}
 									</Stack>
 								</Grid>
-                                
-                                <Grid item xs={6} sm={3}>
+
+								<Grid item xs={6} sm={3}>
 									<Stack
 										direction="row"
 										alignItems="center"
@@ -433,7 +447,14 @@ function MealPlanDetail({ mealPlanId, open, onClose, onDelete }: MealPlanDetailP
 												name="endDate"
 												label="End Date"
 												type="date"
-												value={(editFormState.endDate ?? new Date()).toISOString().split("T")[0]}
+												value={
+													(
+														editFormState.endDate ??
+														new Date()
+													)
+														.toISOString()
+														.split("T")[0]
+												}
 												onChange={handleChange}
 												variant="outlined"
 												size="small"
@@ -446,7 +467,7 @@ function MealPlanDetail({ mealPlanId, open, onClose, onDelete }: MealPlanDetailP
 										)}
 									</Stack>
 								</Grid>
-                            </Grid>
+							</Grid>
 
 							<Divider sx={{ my: 2 }} />
 
@@ -462,10 +483,12 @@ function MealPlanDetail({ mealPlanId, open, onClose, onDelete }: MealPlanDetailP
 										variant="subtitle1"
 										fontWeight="medium"
 									>
-										Created by {MealPlan.user.email}
+										Created by{" "}
+										{MealPlan.user
+											? MealPlan.user.email
+											: "Unknown"}
 									</Typography>
 								</Stack>
-
 							</Box>
 
 							<Divider sx={{ my: 2 }} />

@@ -33,7 +33,7 @@ interface MealPlanType {
     mealsPerDay: number;
     startDate: Date;
     endDate: Date;
-	user: User;
+	user?: User;
 }
 
 interface MealPlanProps extends MealPlanType {
@@ -53,7 +53,11 @@ function MealPlanCard(props: MealPlanProps) {
 				<Card sx={{ cursor: "pointer" }} onClick={props.onOpenDetail}>
 					<CardHeader
 						title={props.title}
-						subheader={`By: ${props.user.email}`}
+						subheader={
+							props.user
+								? `By: ${props.user.email}`
+								: "By: Unknown"
+						}
 					/>
 					<CardMedia
 						component="img"
