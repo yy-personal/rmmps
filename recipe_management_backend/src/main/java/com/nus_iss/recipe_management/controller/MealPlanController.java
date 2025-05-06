@@ -7,6 +7,7 @@ import com.nus_iss.recipe_management.model.Frequency;
 import com.nus_iss.recipe_management.model.MealPlan;
 import com.nus_iss.recipe_management.model.MealPlanRecipeMapping;
 import com.nus_iss.recipe_management.service.MealPlanService;
+import com.nus_iss.recipe_management.dto.CreateMealPlanDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -34,9 +35,15 @@ public class MealPlanController {
             @ApiResponse(responseCode = "401", description = "Unauthorized")
     })
     @PostMapping("/create")
-    public ResponseEntity<MealPlan> createMealPlan(@RequestParam String userEmail, @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime endDate, @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime startDate, @RequestParam Frequency frequency, @RequestParam String title, @RequestParam Integer mealsPerDay) {
+    public ResponseEntity<MealPlan> createMealPlan(@RequestBody CreateMealPlanDTO createMealPlanDTO) {
         ResponseEntity<MealPlan> response;
         try {
+            String userEmail = createMealPlanDTO.getUserEmail();
+            LocalDateTime endDate = createMealPlanDTO.getMealPlan().getEndDate();
+            LocalDateTime startDate = createMealPlanDTO.getMealPlan().getStartDate();
+            Frequency frequency = createMealPlanDTO.getMealPlan().getFrequency();
+            String title = createMealPlanDTO.getMealPlan().getTitle();
+            Integer mealsPerDay = createMealPlanDTO.getMealPlan().getMealsPerDay();            
             MealPlan createdMealPlan = mealPlanService.createMealPlan(userEmail, endDate, startDate, frequency, title, mealsPerDay);
             response = ResponseEntity.ok(createdMealPlan);
         } catch (AccessDeniedException ex) {

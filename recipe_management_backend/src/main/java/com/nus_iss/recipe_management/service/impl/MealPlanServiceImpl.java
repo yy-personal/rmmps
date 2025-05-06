@@ -33,7 +33,6 @@ public class MealPlanServiceImpl implements MealPlanService {
 
     @Override
     public MealPlan createMealPlan(String userEmail, LocalDateTime endDate, LocalDateTime startDate, Frequency frequency, String title, Integer mealsPerDay) {
-
         // 🔐 Get the currently authenticated user's ID
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = ((UserDetails) authentication.getPrincipal()).getUsername();

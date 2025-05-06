@@ -72,7 +72,7 @@ function MealPlanForm() {
 				"POST",
 				JSON.stringify({
 					userEmail: auth.userEmail,
-					title: mealPlanFormState.title,
+					mealPlan: {title: mealPlanFormState.title,
 					frequency:
 						mealPlanFormState.frequency === ""
 							? 0
@@ -89,6 +89,7 @@ function MealPlanForm() {
 						mealPlanFormState.endDate === ""
 						? 0
 						: new Date(mealPlanFormState.endDate),
+					}
 				}),
 				{
 					"Content-Type": "application/json",
