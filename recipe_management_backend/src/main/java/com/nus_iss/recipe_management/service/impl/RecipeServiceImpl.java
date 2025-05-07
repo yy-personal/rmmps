@@ -98,17 +98,29 @@ public class RecipeServiceImpl implements RecipeService {
                             log.warn("Ingredient with ID {} not found, skipping", dto.getIngredientId());
                             continue;
                         }
+                        log.info("Using existing ingredient with ID {}: {}", dto.getIngredientId(), existingIngredient.get().getName());
                         ingredient = existingIngredient.get();
                     } else if (dto.getName() != null && !dto.getName().isEmpty()) {
-                        // Create or find by name
-                        Optional<Ingredient> existingIngredient = ingredientRepository.findByName(dto.getName());
+                        // First try to find by name case-insensitive
+                        Optional<Ingredient> existingIngredient = ingredientRepository.findByNameIgnoreCase(dto.getName());
                         if (existingIngredient.isPresent()) {
+                            log.info("Found existing ingredient with name (case insensitive): {}", dto.getName());
                             ingredient = existingIngredient.get();
                         } else {
+                            // Create new ingredient if it doesn't exist
+                            log.info("Creating new ingredient: {}", dto.getName());
                             Ingredient newIngredient = new Ingredient();
                             newIngredient.setName(dto.getName());
-                            ingredient = ingredientRepository.save(newIngredient);
-                            ingredientRepository.flush(); // Ensure ingredient is saved
+
+                            try {
+                                ingredient = ingredientRepository.save(newIngredient);
+                                ingredientRepository.flush(); // Ensure ingredient is saved
+                                log.info("Successfully created new ingredient with ID {}: {}",
+                                        ingredient.getIngredientId(), ingredient.getName());
+                            } catch (Exception e) {
+                                log.error("Failed to create ingredient '{}': {}", dto.getName(), e.getMessage(), e);
+                                continue; // Skip this ingredient and move to the next
+                            }
                         }
                     } else {
                         // Skip invalid entries
@@ -126,7 +138,12 @@ public class RecipeServiceImpl implements RecipeService {
                     mapping.setIngredient(ingredient);
                     mapping.setQuantity(dto.getQuantity() != null ? dto.getQuantity() : "1 unit");
 
-                    recipeIngredientsMappingRepository.save(mapping);
+                    try {
+                        recipeIngredientsMappingRepository.save(mapping);
+                        log.info("Added ingredient {} to recipe {}", ingredient.getName(), savedRecipe.getTitle());
+                    } catch (Exception e) {
+                        log.error("Failed to map ingredient to recipe: {}", e.getMessage(), e);
+                    }
                 } catch (Exception e) {
                     log.error("Error processing ingredient: {}", e.getMessage(), e);
                     // Continue with other ingredients
@@ -275,17 +292,29 @@ public class RecipeServiceImpl implements RecipeService {
                                 log.warn("Ingredient with ID {} not found, skipping", dto.getIngredientId());
                                 continue;
                             }
+                            log.info("Using existing ingredient with ID {}: {}", dto.getIngredientId(), existingIngredient.get().getName());
                             ingredient = existingIngredient.get();
                         } else if (dto.getName() != null && !dto.getName().isEmpty()) {
-                            // Create or find by name
-                            Optional<Ingredient> existingIngredient = ingredientRepository.findByName(dto.getName());
+                            // First try to find by name case-insensitive
+                            Optional<Ingredient> existingIngredient = ingredientRepository.findByNameIgnoreCase(dto.getName());
                             if (existingIngredient.isPresent()) {
+                                log.info("Found existing ingredient with name (case insensitive): {}", dto.getName());
                                 ingredient = existingIngredient.get();
                             } else {
+                                // Create or find by name
+                                log.info("Creating new ingredient: {}", dto.getName());
                                 Ingredient newIngredient = new Ingredient();
                                 newIngredient.setName(dto.getName());
-                                ingredient = ingredientRepository.save(newIngredient);
-                                ingredientRepository.flush();
+
+                                try {
+                                    ingredient = ingredientRepository.save(newIngredient);
+                                    ingredientRepository.flush();
+                                    log.info("Successfully created new ingredient with ID {}: {}",
+                                            ingredient.getIngredientId(), ingredient.getName());
+                                } catch (Exception e) {
+                                    log.error("Failed to create ingredient '{}': {}", dto.getName(), e.getMessage(), e);
+                                    continue; // Skip this ingredient and move to the next
+                                }
                             }
                         } else {
                             // Skip invalid entries
@@ -302,7 +331,12 @@ public class RecipeServiceImpl implements RecipeService {
                         mapping.setIngredient(ingredient);
                         mapping.setQuantity(dto.getQuantity() != null ? dto.getQuantity() : "1 unit");
 
-                        recipeIngredientsMappingRepository.save(mapping);
+                        try {
+                            recipeIngredientsMappingRepository.save(mapping);
+                            log.info("Added ingredient {} to recipe {}", ingredient.getName(), existingRecipe.getTitle());
+                        } catch (Exception e) {
+                            log.error("Failed to map ingredient to recipe: {}", e.getMessage(), e);
+                        }
                     } catch (Exception e) {
                         log.error("Error processing ingredient: {}", e.getMessage(), e);
                     }
@@ -404,7 +438,7 @@ public class RecipeServiceImpl implements RecipeService {
                         restriction,
                         LocalDateTime.now()
                 ))
-                .toList();
+                .collect(Collectors.toList());
 
         recipeDietaryRestrictionMappingRepository.saveAll(mappings);
     }
