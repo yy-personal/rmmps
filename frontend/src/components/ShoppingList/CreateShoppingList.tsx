@@ -97,15 +97,11 @@ function CreateShoppingListModal({
 		setSelectedRecipes([]);
 		setSearchQuery("");
 		setShowValidationError(false);
-		setSubmitError(null); // Clear local submission errors
-		// serverError from the hook will be reset automatically on the next sendRequest call in the hook
+		setSubmitError(null); 
 		setExpandedRecipeIds([]);
 		setRecipeIngredients({});
 		setLoadingIngredients([]);
-		// Keep fetched recipes if desired, or clear them:
-		// setRecipes([]);
-		// setFilteredRecipes([]);
-	}, []); // No dependencies needed here if only setting state
+	}, []);
 
 	// Close Handler
 	const handleClose = () => {
@@ -165,10 +161,8 @@ function CreateShoppingListModal({
 		setFilteredRecipes(filtered);
 	};
 
-	// Restore scroll position after any update that might affect it
 	const restoreScrollPosition = () => {
 		if (gridRef.current && scrollPosition > 0) {
-			// Use setTimeout to ensure the restore happens after DOM updates
 			setTimeout(() => {
 				if (gridRef.current) {
 					gridRef.current.scrollTop = scrollPosition;
@@ -201,10 +195,8 @@ function CreateShoppingListModal({
 			return;
 		}
 
-		// Add this recipe to expanded list
 		setExpandedRecipeIds((prev) => [...prev, recipeId]);
 
-		// Only fetch ingredients if not already loaded
 		if (!recipeIngredients[recipeId]) {
 			setLoadingIngredients((prev) => [...prev, recipeId]);
 			try {
@@ -751,4 +743,4 @@ function CreateShoppingListModal({
 	);
 }
 
-export default CreateShoppingListModal; // Exporting as Modal, but filename might be CreateShoppingList.tsx
+export default CreateShoppingListModal; 
