@@ -122,36 +122,27 @@ function RecipeList() {
 		sortDirection: "asc",
 	});
 
-	// Update the getUserIdFromAuth function to be more reliable
 	const getUserIdFromAuth = (): number | null => {
 		if (!auth.isLoggedIn) return null;
 
 		try {
-			// In a real app, we would probably have the user ID directly in the auth context
-			// For now, let's try to extract it from the stored userData
 			const userData = localStorage.getItem("rmmps-userData");
 			if (userData) {
 				const parsedData = JSON.parse(userData);
 
-				// Debug what's in the stored data
 				console.log("UserData from localStorage:", parsedData);
 
-				// Check if we have a direct user object with ID
 				if (parsedData.user && parsedData.user.userId) {
 					return parsedData.user.userId;
 				}
 
-				// Try to get the userId from the API
 				if (auth.userEmail) {
-					// We could do a lookup by email here if needed
 					console.log(
 						"Using email to identify user:",
 						auth.userEmail
 					);
-					// You might need to add an API call here to look up the user by email
 
-					// For now, return a fallback if you know the user ID pattern
-					return null; // Replace with actual logic if possible
+					return null; 
 				}
 
 				return null;
