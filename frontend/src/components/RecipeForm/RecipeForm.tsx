@@ -1,6 +1,9 @@
 import { useContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { AuthContext } from "../../contexts/auth-context";
+import { useHttpClient } from "hooks/http-hook";
 
+// Material UI imports
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Card from "@mui/material/Card";
@@ -27,10 +30,7 @@ import Alert from "@mui/material/Alert";
 import CircularProgress from "@mui/material/CircularProgress";
 import Autocomplete from "@mui/material/Autocomplete";
 
-import { AuthContext } from "../../contexts/auth-context";
-import { useHttpClient } from "hooks/http-hook";
-
-// Define interfaces for meal types and ingredients
+// Interfaces
 interface MealType {
 	mealTypeId: number;
 	name: string;
@@ -98,6 +98,7 @@ function RecipeForm() {
 				const responseData = await sendRequest(
 					`${process.env.REACT_APP_BACKEND_URL}/ingredients`
 				);
+				console.log("Parsed response data:", responseData);
 				setAvailableIngredients(responseData);
 			} catch (err) {
 				console.log(err);
@@ -143,6 +144,8 @@ function RecipeForm() {
 		index: number,
 		newValue: string | IngredientOption | null
 	) => {
+		console.log("handleIngredientNameChange called with:", newValue); // Debug log
+
 		const updatedIngredients = [...ingredients];
 
 		if (newValue === null) {
@@ -154,6 +157,7 @@ function RecipeForm() {
 			};
 		} else if (typeof newValue === "string") {
 			// If just string input (custom value)
+			console.log("Setting ingredient name to string:", newValue); // Debug log
 			updatedIngredients[index] = {
 				...updatedIngredients[index],
 				name: newValue,
@@ -161,6 +165,10 @@ function RecipeForm() {
 			};
 		} else {
 			// If selected from dropdown
+			console.log(
+				"Setting ingredient name from dropdown:",
+				newValue.name
+			); // Debug log
 			updatedIngredients[index] = {
 				...updatedIngredients[index],
 				name: newValue.name,
@@ -168,6 +176,7 @@ function RecipeForm() {
 			};
 		}
 
+		console.log("Updated ingredients:", updatedIngredients); // Debug log
 		setIngredients(updatedIngredients);
 	};
 
@@ -197,7 +206,7 @@ function RecipeForm() {
 
 	// Validate the form
 	const validateForm = () => {
-		return (
+		const valid =
 			recipeFormState.title.trim() !== "" &&
 			recipeFormState.difficultyLevel !== "" &&
 			(recipeFormState.preparationTime === "" ||
@@ -208,10 +217,21 @@ function RecipeForm() {
 				Number(recipeFormState.servings) > 0) &&
 			recipeFormState.steps.trim() !== "" &&
 			selectedMealTypes.length > 0 &&
-			ingredients.every(
-				(ing) => ing.name.trim() !== "" && ing.quantity.trim() !== ""
-			)
-		);
+			ingredients.every((ing) => {
+				const nameValid = ing.name && ing.name.trim() !== "";
+				const quantityValid =
+					ing.quantity && ing.quantity.trim() !== "";
+
+				if (!nameValid)
+					console.log("Invalid ingredient name:", ing.name);
+				if (!quantityValid)
+					console.log("Invalid ingredient quantity:", ing.quantity);
+
+				return nameValid && quantityValid;
+			});
+
+		console.log("Form validation result:", valid);
+		return valid;
 	};
 
 	const handleSubmit = async (e: React.FormEvent) => {
@@ -552,33 +572,113 @@ function RecipeForm() {
 											id={`ingredient-name-${index}`}
 											freeSolo
 											options={availableIngredients}
-											getOptionLabel={(option) =>
-												typeof option === "string"
-													? option
-													: option.name
-											}
+											getOptionLabel={(option) => {
+												// Handle string inputs properly
+												if (
+													typeof option === "string"
+												) {
+													return option;
+												}
+												// Handle object inputs
+												if (option && option.name) {
+													return option.name;
+												}
+												// Fallback
+												return "";
+											}}
 											isOptionEqualToValue={(
 												option,
 												value
-											) =>
-												option.ingredientId ===
-												value.ingredientId
-											}
-											value={
-												ingredient.ingredientId
-													? availableIngredients.find(
-															(i) =>
-																i.ingredientId ===
-																ingredient.ingredientId
-													  ) || null
-													: ingredient.name
-											}
-											onChange={(_, newValue) =>
-												handleIngredientNameChange(
-													index,
-													newValue
-												)
-											}
+											) => {
+												// Handle case where value may be a string
+												if (typeof value === "string") {
+													return (
+														option.name === value
+													);
+												}
+												// Normal object comparison
+												return (
+													option.ingredientId ===
+													value.ingredientId
+												);
+											}}
+											value={ingredient.name || ""}
+											inputValue={ingredient.name || ""}
+											onInputChange={(
+												event,
+												newInputValue
+											) => {
+												// Update ingredient directly with input string
+												const updatedIngredients = [
+													...ingredients,
+												];
+												updatedIngredients[index] = {
+													...updatedIngredients[
+														index
+													],
+													name: newInputValue,
+													ingredientId: undefined,
+												};
+												setIngredients(
+													updatedIngredients
+												);
+											}}
+											onChange={(event, newValue) => {
+												if (newValue === null) {
+													// Handle null value
+													const updatedIngredients = [
+														...ingredients,
+													];
+													updatedIngredients[index] =
+														{
+															...updatedIngredients[
+																index
+															],
+															name: "",
+															ingredientId:
+																undefined,
+														};
+													setIngredients(
+														updatedIngredients
+													);
+												} else if (
+													typeof newValue === "string"
+												) {
+													// Handle string input (free text)
+													const updatedIngredients = [
+														...ingredients,
+													];
+													updatedIngredients[index] =
+														{
+															...updatedIngredients[
+																index
+															],
+															name: newValue,
+															ingredientId:
+																undefined,
+														};
+													setIngredients(
+														updatedIngredients
+													);
+												} else {
+													// Handle selection from dropdown
+													const updatedIngredients = [
+														...ingredients,
+													];
+													updatedIngredients[index] =
+														{
+															...updatedIngredients[
+																index
+															],
+															name: newValue.name,
+															ingredientId:
+																newValue.ingredientId,
+														};
+													setIngredients(
+														updatedIngredients
+													);
+												}
+											}}
 											renderInput={(params) => (
 												<TextField
 													{...params}
@@ -586,13 +686,15 @@ function RecipeForm() {
 													required
 													error={
 														submitAttempted &&
-														ingredient.name.trim() ===
-															""
+														(!ingredient.name ||
+															ingredient.name.trim() ===
+																"")
 													}
 													helperText={
 														submitAttempted &&
-														ingredient.name.trim() ===
-															""
+														(!ingredient.name ||
+															ingredient.name.trim() ===
+																"")
 															? "Required"
 															: ""
 													}
