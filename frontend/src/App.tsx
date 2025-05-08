@@ -6,6 +6,7 @@ import { Outlet, useNavigate } from "react-router-dom";
 import { AuthContext } from "./contexts/auth-context";
 import { useCallback, useEffect, useState } from "react";
 import { useHttpClient } from "hooks/http-hook";
+import { ToastContainer } from "react-toastify";
 
 const userDataIdentifier = "rmmps-userData";
 const defaultTokenExpiry = 1000 * 890; // 15 minutes - 10 seconds buffer
@@ -58,10 +59,6 @@ function App() {
 
   const logout = useCallback(async () => {
     try {
-      if (!accessToken) {
-        throw new Error("User is not logged in!");
-      }
-
       /* Update states and local storage */
       setAccessToken("");
       setRefreshToken("");
@@ -69,11 +66,11 @@ function App() {
       // setUserName("");
       setAccessTokenExpiry(undefined);
       localStorage.removeItem(userDataIdentifier);
-      navigate("/");
+      navigate("/login");
     } catch (err) {
       console.log(err.message || "unknown error");
     }
-  }, [accessToken, sendRequest]);
+  }, [accessToken, navigate]);
 
   const authRefresh = useCallback(
     async (_refreshToken: string) => {
@@ -122,7 +119,7 @@ function App() {
         console.log(serverError);
       }
     },
-    [sendRequest, logout]
+    [sendRequest, logout, serverError, statusCode]
   );
 
   useEffect(() => {
@@ -183,6 +180,7 @@ function App() {
     >
       <Box className="App">
         <Header />
+        <ToastContainer />
         <Box
           sx={{ backgroundColor: "#FBFBFB", minHeight: "calc(100vh - 70px)" }}
         >

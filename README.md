@@ -5,26 +5,30 @@ A comprehensive system for managing recipes, planning meals, and generating shop
 
 ## Tools and Technologies
 
-| Category | Tool Options | Reference Link |
-|----------|--------------|----------------|
-| Project Management | Jira | - |
+| Category | Technology | Reference Link |
+|----------|------------|----------------|
+| Project Management | Jira | https://ncs-6ever.atlassian.net/jira/software/projects/RMMPS/boards/1 |
 | Version Control | GitHub | https://github.com/yy-personal/rmmps/ |
-| Communication | Discord | - |
-| CI/CD | GitHub Actions | https://github.com/features/actions |
+| Communication | Telegram | - |
+| CI/CD | GitHub Actions | https://github.com/yy-personal/rmmps/actions |
 | Documentation | GitHub Wiki | https://docs.github.com/wiki |
-| API Testing | Postman | https://www.postman.com |
+| API Testing | Swagger | http://localhost:8080/swagger-ui.html |
 | Code Quality | ESLint, Prettier | - |
 
 ## Technical Stack
 
 ### Frontend
-- Framework: React with TypeScript
-- UI Library: Material-UI
+- Framework: React 18 with TypeScript
+- UI Library: Material-UI 6
+- State Management: React Context API
+- Routing: React Router v7
 
 ### Backend
 - Language: Java 17
-- Framework: Spring Boot 3(LTS version)
-- Database: MySQL (hosted on AWS)
+- Framework: Spring Boot 3 (LTS version)
+- Security: Spring Security with JWT authentication
+- Database: MySQL (hosted on Aiven)
+- API Documentation: OpenAPI (Swagger)
 
 ### DevOps
 - CI/CD: GitHub Actions with the following hooks:
@@ -32,25 +36,61 @@ A comprehensive system for managing recipes, planning meals, and generating shop
   - Automated Testing
   - Test Coverage Analysis
   - Vulnerabilities Scanning
-- Future Implementation: Docker containerization for local development
 
-## Project Structure(To Be Updated)
+## Project Structure
 ```
 project-root/
-├── frontend/          # React TypeScript application
-│   ├── src/
-│   ├── public/
-│   └── package.json
-├── backend/          # Spring Boot application
-│   ├── src/
-│   ├── pom.xml
-│   └── README.md
-├── docs/            # Documentation
-└── .github/         # GitHub Actions workflows
+├── frontend/                 # React TypeScript application
+│   ├── public/               # Static files
+│   ├── src/                  # Source code
+│   │   ├── components/       # React components
+│   │   ├── contexts/         # React contexts for state management
+│   │   ├── hooks/            # Custom React hooks
+│   │   └── templates/        # Template components
+│   └── package.json          # Frontend dependencies
+├── recipe_management_backend/ # Spring Boot application
+│   ├── src/                  # Source code
+│   │   ├── main/             # Main application code
+│   │   │   ├── java/         # Java source files
+│   │   │   └── resources/    # Application properties and resources
+│   │   └── test/             # Test code
+│   ├── pom.xml               # Maven project and dependencies
+│   └── README.md             # Backend-specific documentation
+├── docs/                     # Project documentation
+└── README.md                 # Main project documentation
 ```
 
+## Core Features
+
+### 1. Recipe Management
+- Create, view, update, and delete recipes
+- Store recipe details including ingredients, preparation steps, cooking times
+- Categorize recipes by meal types
+- Track recipe difficulty levels
+
+### 2. Meal Planning
+- Create meal plans with specified date ranges
+- Assign recipes to meal plans
+- Manage meal frequency and portions
+- View upcoming meal schedules
+
+### 3. Shopping List Generation
+- Create shopping lists based on recipes
+- Organize ingredients by category
+- Manage quantities
+- Mark items as purchased
+
+### 4. User Account Management
+- User registration and authentication
+- Secure password storage
+- JWT-based authorization
+
+### 5. Recipe Search and Discovery
+- Browse recommended recipes
+- Search for recipes by title, ingredients, or categories
+- View detailed recipe information
+
 ## Development Setup
-[To be updated after environment setup is complete]
 
 ### Prerequisites
 - Node.js (for frontend development)
@@ -59,68 +99,72 @@ project-root/
 - Git
 
 ### Local Development Steps
-1. [Repository setup steps]
-2. [Environment configuration]
-3. [Build and run instructions]
+
+1. Clone the repository:
+   ```sh
+   git clone https://github.com/yy-personal/rmmps.git
+   cd rmmps
+   ```
+
+2. Backend setup:
+   ```sh
+   cd recipe_management_backend
+   
+   # Create a .env file with the following variables
+   # DB_USERNAME=your_db_username
+   # DB_PASSWORD=your_db_password
+   
+   # Build and run
+   mvn clean install
+   mvn spring-boot:run
+   ```
+
+3. Frontend setup:
+   ```sh
+   cd frontend
+   
+   # Create a .env file with the following variables
+   # REACT_APP_BACKEND_URL=http://localhost:8080/api
+   # REACT_APP_ASSET_URL=http://localhost:8080
+   
+   # Install dependencies and run
+   npm i
+   npm start
+   ```
 
 ## Git Workflow
 
-### Branch Structure(To Be Updated)
-- main (production)
-- development
-- feature/[feature-name]
-- bugfix/[bug-name]
+### Branch Structure
+- `main`: Production-ready code
+- `development`: Integration branch for development work
+- Feature branches:
+  - `feature/<feature-name>`: For new features
+  - `bugfix/<bug-description>`: For bug fixes
+  - `docs/<documentation-description>`: For documentation updates
 
 ### Commit Message Format
-[To be decided - e.g., Conventional Commits]
-
-## Sprint 1 Features (Feb 3 - Feb 14)
-
-### Recipe Management Module
-
-#### 1. Recipe Creation
-- Create recipe with following attributes:
-  - Recipe title
-  - Preparation time
-  - Cooking time
-  - Difficulty level
-  - Servings
-  - Ingredients list
-  - Steps
-  - Categories (cuisine type, meal type, dietary restrictions)
-- System generates unique recipe ID
-
-#### 2. Recipe Modification
-- Edit existing recipe attributes:
-  - Recipe title
-  - Preparation time
-  - Cooking time
-  - Difficulty level
-  - Servings
-  - Ingredients list
-  - Steps
-  - Categories
-- Owner-only modification access
-
-#### 3. Recipe Deletion
-- Owner-only deletion capability
-- Confirmation prompt before deletion
-- Soft deletion implementation
+- Use descriptive commit messages that explain the changes
+- Prefix commit messages with the type of change: feat, fix, docs, etc.
 
 ## Testing Strategy
-- Frontend Testing: [Framework to be decided]
+- Frontend Testing: Jest, React Testing Library
 - Backend Testing: JUnit, Spring Test
-- Integration Testing: [Approach to be decided]
-- E2E Testing: [Tools to be decided]
+- Integration Testing: REST-assured
+- Manual Testing: Feature verification
 
-## Deployment Strategy
-[To be determined]
-- Development Environment: Local setup
-- Staging Environment: [Details pending]
-- Production Environment: Local
+## API Documentation
+The backend API is documented using OpenAPI (Swagger). When running the application, you can access the documentation at:
+```
+http://localhost:8080/swagger-ui.html
+```
 
-## Documentation Guidelines
-[To be developed with team input]
+## Database Schema
+The database schema includes tables for users, recipes, meal plans, ingredients, and various mapping tables to establish relationships between entities. For detailed schema information, see the SQL scripts in `recipe_management_backend/src/main/resources/db_scripts/`.
 
-## Contributing Guidelines
-[To be developed with team input]
+## Design Patterns
+The application implements several design patterns:
+- Observer Pattern for notification systems
+- Factory Pattern for recipe creation
+- Builder Pattern for complex recipe construction
+
+For more details on the implementation of these patterns, refer to the project documentation.

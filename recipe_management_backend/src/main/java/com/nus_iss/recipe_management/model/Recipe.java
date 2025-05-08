@@ -1,10 +1,16 @@
 package com.nus_iss.recipe_management.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
-// Recipes Entity
 @Entity
 @Table(name = "Recipes")
 @Getter @Setter
@@ -13,8 +19,10 @@ public class Recipe {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer recipeId;
 
+//    @JsonIgnore
     @ManyToOne
-    @JoinColumn(name = "userId", nullable = false)
+//    @JsonBackReference
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
     @Column(nullable = false)
@@ -36,7 +44,39 @@ public class Recipe {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String steps;
 
+    @OneToMany(mappedBy = "recipe", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<RecipeDietaryRestrictionMapping> dietaryRestrictions = new HashSet<>();
+
+    @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+    @JoinTable(
+            name = "RecipeMealTypeMapping",
+            joinColumns = @JoinColumn(name = "recipe_id"),
+            inverseJoinColumns = @JoinColumn(name = "meal_type_id")
+    )
+    private Set<MealType> mealTypes = new HashSet<>();
+
+    @OneToMany(mappedBy = "recipe", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonBackReference
+    private Set<MealPlanRecipeMapping> mealPlans = new HashSet<>();
+
+    @OneToMany(mappedBy = "recipe", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<RecipeIngredientsMapping> ingredients = new HashSet<>();
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
-}
 
+    // Keep this JsonIgnore to prevent circular references
+    @JsonIgnore
+    public Set<MealPlanRecipeMapping> getMealPlans() {
+        return mealPlans;
+    }
+
+    @JsonProperty("user")
+    public Map<String, Object> getUserForJson() {
+        if (user == null) return null;
+        Map<String, Object> userMap = new HashMap<>();
+        userMap.put("userId", user.getUserId());
+        userMap.put("email", user.getEmail());
+        return userMap;
+    }
+}

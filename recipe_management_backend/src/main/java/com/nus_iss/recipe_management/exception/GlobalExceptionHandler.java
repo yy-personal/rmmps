@@ -15,6 +15,6 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<String> handleDuplicateKeyException(DataIntegrityViolationException e) {
-        return ResponseEntity.badRequest().body("This email is already registered.");
+        return ResponseEntity.badRequest().body("Error trying to save duplicate key.");
     }
 }

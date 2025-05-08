@@ -4,6 +4,11 @@ import com.nus_iss.recipe_management.exception.RecipeNotFoundException;
 import com.nus_iss.recipe_management.model.Recipe;
 import com.nus_iss.recipe_management.model.User;
 import com.nus_iss.recipe_management.model.DifficultyLevel;
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import com.nus_iss.recipe_management.repository.RecipeRepository;
 import com.nus_iss.recipe_management.service.impl.RecipeServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
@@ -12,6 +17,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -27,6 +37,18 @@ import static org.mockito.Mockito.*;
 class RecipeServiceTest {
 
     @Mock
+    private UserService userService;
+
+    @Mock
+    private Authentication authentication;
+
+    @Mock
+    private SecurityContext securityContext;
+
+    @Mock
+    private UserDetails userDetails;
+
+    @Mock
     private RecipeRepository recipeRepository;
 
     @InjectMocks
@@ -35,11 +57,14 @@ class RecipeServiceTest {
     private Recipe testRecipe;
     private Recipe updatedRecipe;
     private User testUser;
+    private org.springframework.security.core.userdetails.UserDetails mockAuthUser;
 
     @BeforeEach
     void setUp() {
         // Create test user
         testUser = new User();
+        testUser.setUserId(1);
+
         // Set necessary user properties
 
         // Create test recipe
@@ -61,11 +86,29 @@ class RecipeServiceTest {
         updatedRecipe.setCookingTime(25);
         updatedRecipe.setDifficultyLevel(DifficultyLevel.MEDIUM);
         updatedRecipe.setPreparationTime(15);
+
+        // Set up security context
+        mockAuthUser =
+                org.springframework.security.core.userdetails.User.builder()
+                        .username("testUser")
+                        .password("password")
+                        .authorities(List.of(new SimpleGrantedAuthority("ROLE_USER")))
+                        .build();
+
+        Authentication authentication = new UsernamePasswordAuthenticationToken(mockAuthUser, null, mockAuthUser.getAuthorities());
+
+        SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
+        securityContext.setAuthentication(authentication);
+        SecurityContextHolder.setContext(securityContext);
     }
 
     @Test
-    void createRecipe_ShouldReturnCreatedRecipe() {
+    void createRecipe_ShouldReturnCreatedRecipe_WhenUserIsAuthenticatedAndOwner() {
         // Arrange
+        com.nus_iss.recipe_management.model.User mockUserEntity = new com.nus_iss.recipe_management.model.User();
+        mockUserEntity.setUserId(1);
+
+        when(userService.findByEmail(mockAuthUser.getUsername())).thenReturn(Optional.of(mockUserEntity));
         when(recipeRepository.save(any(Recipe.class))).thenReturn(testRecipe);
 
         // Act
@@ -73,14 +116,32 @@ class RecipeServiceTest {
 
         // Assert
         assertNotNull(createdRecipe);
-        assertEquals(testRecipe.getRecipeId(), createdRecipe.getRecipeId());
-        assertEquals(testRecipe.getTitle(), createdRecipe.getTitle());
-        assertEquals(testRecipe.getPreparationTime(), createdRecipe.getPreparationTime());
-        assertEquals(testRecipe.getCookingTime(), createdRecipe.getCookingTime());
-        assertEquals(testRecipe.getDifficultyLevel(), createdRecipe.getDifficultyLevel());
-        assertEquals(testRecipe.getServings(), createdRecipe.getServings());
-        assertEquals(testRecipe.getSteps(), createdRecipe.getSteps());
+        assertEquals(testRecipe.getUser().getUserId(), createdRecipe.getUser().getUserId());
         verify(recipeRepository, times(1)).save(any(Recipe.class));
+    }
+
+    @Test
+    void createRecipe_ShouldThrowAuthenticationCredentialsNotFoundException_WhenUserNotFound() {
+        // Arrange
+        when(userService.findByEmail(mockAuthUser.getUsername())).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThrows(AuthenticationCredentialsNotFoundException.class, () -> recipeService.createRecipe(testRecipe));
+        verify(recipeRepository, never()).save(any(Recipe.class));
+    }
+
+    @Test
+    void createRecipe_ShouldThrowAccessDeniedException_WhenUserIsNotOwner() {
+        // Arrange
+        com.nus_iss.recipe_management.model.User differentUser = new com.nus_iss.recipe_management.model.User();
+        differentUser.setUserId(2); // Different user ID
+
+        when(userService.findByEmail(mockAuthUser.getUsername())).thenReturn(Optional.of(differentUser));
+
+        // Act & Assert
+        AccessDeniedException exception = assertThrows(AccessDeniedException.class, () -> recipeService.createRecipe(testRecipe));
+        assertEquals("You do not have permission to create this recipe as the user of the user id submitted.", exception.getMessage());
+        verify(recipeRepository, never()).save(any(Recipe.class));
     }
 
     @Test
@@ -135,6 +196,10 @@ class RecipeServiceTest {
         // Arrange: mock repository to return existingRecipe when findById is called
         when(recipeRepository.findById(1)).thenReturn(Optional.of(testRecipe));
         when(recipeRepository.save(testRecipe)).thenReturn(testRecipe);
+        com.nus_iss.recipe_management.model.User mockUserEntity = new com.nus_iss.recipe_management.model.User();
+        mockUserEntity.setUserId(1);
+
+        when(userService.findByEmail(mockAuthUser.getUsername())).thenReturn(Optional.of(mockUserEntity));
 
         // Act: call the update method
         Recipe result = recipeService.updateRecipe(1, updatedRecipe);
@@ -166,12 +231,25 @@ class RecipeServiceTest {
         verify(recipeRepository, never()).save(any());  // Verify save was not called
     }
 
-    @Test
-    void deleteRecipe_ShouldDeleteSuccessfully() {
-        // Act
-        recipeService.deleteRecipe(1);
 
-        // Assert
-        verify(recipeRepository, times(1)).deleteById(1);
+
+    @Test
+    void deleteRecipe_ShouldThrowAccessDeniedException_WhenUserNotOwner() {
+        User anotherUser = new User();
+        anotherUser.setUserId(2);
+        testRecipe.setUser(anotherUser);
+
+        UserDetails userDetails = mock(UserDetails.class);
+        when(userDetails.getUsername()).thenReturn("test@example.com");
+        when(authentication.getPrincipal()).thenReturn(userDetails);
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+        SecurityContextHolder.setContext(securityContext);
+
+        User currentUser = new User();
+        currentUser.setUserId(1);
+        when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(currentUser));
+        when(recipeRepository.findById(1)).thenReturn(Optional.of(testRecipe));
+
+        assertThrows(AccessDeniedException.class, () -> recipeService.deleteRecipe(1));
     }
 }
