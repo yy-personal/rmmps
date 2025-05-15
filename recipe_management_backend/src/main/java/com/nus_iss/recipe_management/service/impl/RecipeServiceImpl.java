@@ -333,7 +333,8 @@ public class RecipeServiceImpl implements RecipeService {
 
                         try {
                             recipeIngredientsMappingRepository.save(mapping);
-                            log.info("Added ingredient {} to recipe {}", ingredient.getName(), existingRecipe.getTitle());
+                            String sanitizedTitle = existingRecipe.getTitle().replace('\n', ' ').replace('\r', ' ');
+                            log.info("Added ingredient {} to recipe {}", ingredient.getName(), sanitizedTitle);
                         } catch (Exception e) {
                             log.error("Failed to map ingredient to recipe: {}", e.getMessage(), e);
                         }
