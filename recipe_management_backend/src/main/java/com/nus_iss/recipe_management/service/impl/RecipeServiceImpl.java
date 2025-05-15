@@ -124,7 +124,7 @@ public class RecipeServiceImpl implements RecipeService {
                                 log.info("Successfully created new ingredient with ID {}: {}",
                                         ingredient.getIngredientId(), sanitizedName);
                             } catch (Exception e) {
-                                log.error("Failed to create ingredient '{}': {}", dto.getName(), e.getMessage(), e);
+                                log.error("Failed to create ingredient '{}': {}", sanitizedDTOName, e.getMessage(), e);
                                 continue; // Skip this ingredient and move to the next
                             }
                         }
@@ -307,7 +307,9 @@ public class RecipeServiceImpl implements RecipeService {
                             // First try to find by name case-insensitive
                             Optional<Ingredient> existingIngredient = ingredientRepository.findByNameIgnoreCase(dto.getName());
                             if (existingIngredient.isPresent()) {
-                                log.info("Found existing ingredient with name (case insensitive): {}", dto.getName());
+                                String sanitizedDTOName = dto.getName().replace('\n', ' ').replace('\r', ' ');
+
+                                log.info("Found existing ingredient with name (case insensitive): {}", sanitizedDTOName);
                                 ingredient = existingIngredient.get();
                             } else {
                                 // Create or find by name
