@@ -31,8 +31,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: linting tool report
-          path: |
-            ./eslint-report
+          path: frontend/eslint-report.html
 
   load_env:
     name: Load Environment Variables From Secrets
@@ -114,7 +113,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: codeql-sarif
-          path: codeql-sarif
+          path: sarif
 
   dast_scan:
     name: Dynamic Application Security Testing (DAST)
