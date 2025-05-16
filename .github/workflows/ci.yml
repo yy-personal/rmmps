@@ -25,7 +25,7 @@ jobs:
         run: cd frontend && npm ci
 
       - name: Run ESLint
-        run: cd frontend && npx eslint . --ext .ts,.tsx
+        run: cd frontend && npx eslint . --ext .ts,.tsx -f html -o eslint-report.html
 
       - name: Archive production artifacts
         uses: actions/upload-artifact@v4
@@ -110,12 +110,11 @@ jobs:
           category: "/language:java"
           output: sarif
       
-      - name: Archive production artifacts
+      - name: Archive CodeQL SARIF report
         uses: actions/upload-artifact@v4
         with:
-          name: sast report
-          path: |
-            ./dependency-check-report.html
+          name: codeql-sarif
+          path: codeql-sarif
 
   dast_scan:
     name: Dynamic Application Security Testing (DAST)
@@ -144,9 +143,8 @@ jobs:
         with:
           target: 'http://localhost:8080'
       
-      - name: Archive production artifacts
+      - name: Archive ZAP Report
         uses: actions/upload-artifact@v4
         with:
           name: DAST Scan Report
-          path: |
-            ./owasp-report
+          path: /zap/wrk
